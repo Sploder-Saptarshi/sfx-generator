@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useRef } from "react";
@@ -12,9 +11,10 @@ import { useToast } from "@/hooks/use-toast";
 interface PresetsListProps {
   currentParams: SoundParams;
   onUpdateParams: (params: SoundParams) => void;
+  onPresetsChange?: () => void;
 }
 
-export default function PresetsList({ currentParams, onUpdateParams }: PresetsListProps) {
+export default function PresetsList({ currentParams, onUpdateParams, onPresetsChange }: PresetsListProps) {
   const [presets, setPresets] = useState<SoundParams[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -33,6 +33,7 @@ export default function PresetsList({ currentParams, onUpdateParams }: PresetsLi
   const saveToLocalStorage = (newPresets: SoundParams[]) => {
     setPresets(newPresets);
     localStorage.setItem("sound-presets", JSON.stringify(newPresets));
+    onPresetsChange?.();
   };
 
   const savePreset = () => {
@@ -70,7 +71,6 @@ export default function PresetsList({ currentParams, onUpdateParams }: PresetsLi
         const imported = JSON.parse(e.target?.result as string);
         if (Array.isArray(imported)) {
           const merged = [...imported, ...presets];
-          // Simple de-duplication based on ID or Name
           const unique = merged.filter((v, i, a) => a.findIndex(t => (t.id === v.id || t.name === v.name)) === i);
           saveToLocalStorage(unique);
           toast({ title: "Import Successful", description: `Added ${imported.length} presets to library` });
@@ -80,13 +80,11 @@ export default function PresetsList({ currentParams, onUpdateParams }: PresetsLi
       }
     };
     reader.readAsText(file);
-    // Reset file input
     event.target.value = '';
   };
 
   return (
     <div className="flex flex-col h-full glass-panel rounded-2xl overflow-hidden">
-      {/* Naming Section */}
       <div className="p-4 border-b border-white/5 space-y-3 bg-white/5">
         <div className="flex items-center gap-2">
           <Type className="w-4 h-4 text-primary" />
@@ -105,7 +103,6 @@ export default function PresetsList({ currentParams, onUpdateParams }: PresetsLi
         </div>
       </div>
 
-      {/* Library Actions */}
       <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
         <h3 className="font-bold flex items-center gap-2 text-sm">
           <FolderOpen className="w-4 h-4 text-primary" />
@@ -150,7 +147,7 @@ export default function PresetsList({ currentParams, onUpdateParams }: PresetsLi
           {presets.map((p) => (
             <div
               key={p.id || p.name + p.createdAt}
-              className="group flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer border border-transparent hover:border-white/10"
+              className={`group flex items-center justify-between p-3 rounded-xl transition-colors cursor-pointer border ${currentParams.id === p.id ? 'bg-primary/20 border-primary/40' : 'bg-white/5 hover:bg-white/10 border-transparent hover:border-white/10'}`}
               onClick={() => onUpdateParams(p)}
             >
               <div className="overflow-hidden">

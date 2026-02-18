@@ -1,21 +1,37 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { SoundParams, defaultSoundParams } from "@/types/audio";
+import { SoundParams, defaultSoundParams, GAME_PRESETS } from "@/types/audio";
 import { audioEngine } from "@/lib/audio-engine";
 import SoundControls from "@/components/sound-controls";
 import AudioVisualizer from "@/components/audio-visualizer";
 import AiGenerator from "@/components/ai-generator";
 import QuickPresets from "@/components/quick-presets";
+import Composer from "@/components/composer";
 import { Button } from "@/components/ui/button";
-import { Play, Download, Headphones, Share2, Github } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Play, Download, Headphones, Share2, Github, LayoutGrid, Music } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
 
 export default function SoundSculptorApp() {
   const [params, setParams] = useState<SoundParams>(defaultSoundParams);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [presets, setPresets] = useState<SoundParams[]>([]);
 
   useEffect(() => {
+    // Load presets from localStorage on mount
+    const stored = localStorage.getItem("sound-presets");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setPresets([...GAME_PRESETS, ...parsed]);
+      } catch (e) {
+        setPresets(GAME_PRESETS);
+      }
+    } else {
+      setPresets(GAME_PRESETS);
+    }
+
     const handleFirstInteraction = async () => {
       await audioEngine.init();
       setIsInitialized(true);
@@ -83,47 +99,70 @@ export default function SoundSculptorApp() {
         </div>
       </header>
 
-      {/* Main Grid */}
-      <main className="space-y-6">
-        <div className="flex flex-col gap-6">
-          {/* AI Generator Box */}
-          <AiGenerator onGenerated={handleSelectPreset} />
+      <Tabs defaultValue="sculptor" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/20 border border-white/5 rounded-2xl p-1">
+          <TabsTrigger value="sculptor" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex items-center gap-2">
+            <Music className="w-4 h-4" />
+            Sound Sculptor
+          </TabsTrigger>
+          <TabsTrigger value="composer" className="rounded-xl data-[state=active]:bg-accent data-[state=active]:text-accent-foreground flex items-center gap-2">
+            <LayoutGrid className="w-4 h-4" />
+            EDM Composer
+          </TabsTrigger>
+        </TabsList>
 
-          {/* Monitor & Global Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-            <div className="md:col-span-2">
-              <AudioVisualizer />
+        <TabsContent value="sculptor" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <main className="space-y-6">
+            <div className="flex flex-col gap-6">
+              <AiGenerator onGenerated={handleSelectPreset} />
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                <div className="md:col-span-2">
+                  <AudioVisualizer />
+                </div>
+                <div className="flex flex-col gap-3">
+                  <Button 
+                    size="lg" 
+                    className="w-full h-16 text-xl font-bold bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 rounded-2xl active:scale-95 transition-all"
+                    onClick={() => handlePlay()}
+                  >
+                    <Play className="w-6 h-6 mr-2 fill-current" />
+                    PREVIEW
+                  </Button>
+                  <Button 
+                    size="lg" 
+                    variant="outline" 
+                    className="w-full h-12 font-bold border-accent/20 text-accent hover:bg-accent/10 rounded-xl"
+                    onClick={handleExport}
+                  >
+                    <Download className="w-5 h-5 mr-2" />
+                    EXPORT .WAV
+                  </Button>
+                </div>
+              </div>
+
+              <QuickPresets onSelect={handleSelectPreset} />
+
+              <div className="space-y-4">
+                  <SoundControls 
+                    params={params} 
+                    setParams={handleUpdateParams} 
+                    onPresetsChange={() => {
+                        const stored = localStorage.getItem("sound-presets");
+                        if (stored) {
+                            setPresets([...GAME_PRESETS, ...JSON.parse(stored)]);
+                        }
+                    }}
+                  />
+              </div>
             </div>
-            <div className="flex flex-col gap-3">
-              <Button 
-                size="lg" 
-                className="w-full h-16 text-xl font-bold bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 rounded-2xl active:scale-95 transition-all"
-                onClick={() => handlePlay()}
-              >
-                <Play className="w-6 h-6 mr-2 fill-current" />
-                PREVIEW
-              </Button>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="w-full h-12 font-bold border-accent/20 text-accent hover:bg-accent/10 rounded-xl"
-                onClick={handleExport}
-              >
-                <Download className="w-5 h-5 mr-2" />
-                EXPORT .WAV
-              </Button>
-            </div>
-          </div>
+          </main>
+        </TabsContent>
 
-          {/* Quick Game Presets Banner */}
-          <QuickPresets onSelect={handleSelectPreset} />
-
-          {/* Detailed Controls & Library */}
-          <div className="space-y-4">
-              <SoundControls params={params} setParams={handleUpdateParams} />
-          </div>
-        </div>
-      </main>
+        <TabsContent value="composer" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <Composer library={presets} />
+        </TabsContent>
+      </Tabs>
 
       {!isInitialized && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -131,7 +170,7 @@ export default function SoundSculptorApp() {
             <Headphones className="w-16 h-16 text-primary mx-auto mb-4 animate-pulse" />
             <h2 className="text-2xl font-bold mb-2">Initialize Audio</h2>
             <p className="text-muted-foreground mb-6">Tap anywhere to wake up the synthesis engine.</p>
-            <Button className="w-full rounded-xl">WAKE UP</Button>
+            <Button className="w-full rounded-xl" onClick={() => setIsInitialized(true)}>WAKE UP</Button>
           </div>
         </div>
       )}

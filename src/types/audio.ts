@@ -41,6 +41,18 @@ export interface SoundParams {
   createdAt?: number;
 }
 
+export interface ComposerTrack {
+  id: string;
+  soundId: string | null;
+  steps: boolean[];
+  volume: number;
+}
+
+export interface CompositionState {
+  bpm: number;
+  tracks: ComposerTrack[];
+}
+
 export const defaultSoundParams: SoundParams = {
   name: "New Sound",
   attack: 0.1,
@@ -184,6 +196,8 @@ export const GAME_PRESETS: SoundParams[] = [
     sequenceOffsets: [0, 4, 7, 12],
     sequenceSteps: 4,
     sequenceBpm: 790,
+    playbackMode: 'once',
+    loopCount: 1
   },
   {
     ...defaultSoundParams,

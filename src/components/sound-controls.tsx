@@ -10,9 +10,10 @@ import PresetsList from "./presets-list";
 interface SoundControlsProps {
   params: SoundParams;
   setParams: (params: SoundParams) => void;
+  onPresetsChange?: () => void;
 }
 
-export default function SoundControls({ params, setParams }: SoundControlsProps) {
+export default function SoundControls({ params, setParams, onPresetsChange }: SoundControlsProps) {
   const updateParam = (key: keyof SoundParams, value: any) => {
     setParams({ ...params, [key]: value });
   };
@@ -503,7 +504,11 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
 
       {/* Library Panel (Integrated) */}
       <div className="lg:col-span-2 min-h-[400px]">
-        <PresetsList currentParams={params} onUpdateParams={setParams} />
+        <PresetsList 
+          currentParams={params} 
+          onUpdateParams={setParams} 
+          onPresetsChange={onPresetsChange}
+        />
       </div>
     </div>
   );

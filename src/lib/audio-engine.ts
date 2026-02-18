@@ -1,10 +1,12 @@
-import { SoundParams, WaveformType, NoiseType } from "@/types/audio";
+import { SoundParams, WaveformType, NoiseType, CompositionState } from "@/types/audio";
 
 class AudioEngine {
   private ctx: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
   private compressor: DynamicsCompressorNode | null = null;
   private reverbBuffer: AudioBuffer | null = null;
+  private activeSequenceTimeout: NodeJS.Timeout | null = null;
+  private compositionLoopInterval: any = null;
 
   async init() {
     if (!this.ctx) {
@@ -112,11 +114,11 @@ class AudioEngine {
     return buffer;
   }
 
-  private triggerNote(ctx: BaseAudioContext, time: number, freq: number, params: SoundParams, destination: AudioNode) {
+  private triggerNote(ctx: BaseAudioContext, time: number, freq: number, params: SoundParams, destination: AudioNode, gainScale: number = 1.0) {
     const env = ctx.createGain();
     env.gain.setValueAtTime(0.0001, time);
     
-    const peakLevel = (0.6 / (params.waveformPairs.length || 1)) * (1 + (params.distortion ?? 0) * 1.5);
+    const peakLevel = (0.6 / (params.waveformPairs.length || 1)) * (1 + (params.distortion ?? 0) * 1.5) * gainScale;
     const duration = params.attack + params.decay;
     
     if (params.envelopeShape === 'piano') {
@@ -142,7 +144,7 @@ class AudioEngine {
     env.connect(distorter);
     distorter.connect(destination);
 
-    if (params.noiseAmount > 0 || params.noiseModulation > 0) {
+    if (params.noiseAmount > 0) {
       const noiseSource = ctx.createBufferSource();
       noiseSource.buffer = this.createNoiseBuffer(params.noiseType);
       noiseSource.loop = true;
@@ -187,10 +189,10 @@ class AudioEngine {
     });
   }
 
-  play(params: SoundParams) {
+  play(params: SoundParams, timeOffset: number = 0) {
     if (!this.ctx || !this.compressor) return;
 
-    const now = this.ctx.currentTime;
+    const now = this.ctx.currentTime + timeOffset;
     
     const masterGain = this.ctx.createGain();
     masterGain.gain.setValueAtTime(0.75, now);
@@ -284,6 +286,41 @@ class AudioEngine {
         masterGain.disconnect();
         filter.disconnect();
     }, totalDuration * 1000);
+  }
+
+  stopComposition() {
+    if (this.compositionLoopInterval) {
+      clearInterval(this.compositionLoopInterval);
+      this.compositionLoopInterval = null;
+    }
+  }
+
+  playComposition(composition: CompositionState, library: SoundParams[], onStep: (step: number) => void) {
+    if (!this.ctx) return;
+    this.stopComposition();
+
+    let currentStep = 0;
+    const stepDuration = 60 / composition.bpm / 4; // 16th notes
+    
+    const runStep = () => {
+      const nextTime = this.ctx!.currentTime + 0.1;
+      onStep(currentStep);
+
+      composition.tracks.forEach(track => {
+        if (track.steps[currentStep] && track.soundId) {
+          const sound = library.find(s => s.id === track.soundId);
+          if (sound) {
+            // Trigger the sound with a slight gain scale adjustment
+            this.play(sound, 0.1);
+          }
+        }
+      });
+
+      currentStep = (currentStep + 1) % 8;
+    };
+
+    runStep();
+    this.compositionLoopInterval = setInterval(runStep, stepDuration * 1000);
   }
 
   async exportToWav(params: SoundParams): Promise<Blob> {
