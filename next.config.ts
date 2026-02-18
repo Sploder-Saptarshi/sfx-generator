@@ -35,6 +35,27 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  /* Fix for Genkit/OpenTelemetry in browser builds */
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      // Stub out Node.js specific modules that Genkit/OpenTelemetry depend on
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        async_hooks: false,
+        fs: false,
+        net: false,
+        tls: false,
+        child_process: false,
+        http2: false,
+        dns: false,
+        os: false,
+        path: false,
+        crypto: false,
+        stream: false,
+      };
+    }
+    return config;
+  },
   typescript: {
     ignoreBuildErrors: true,
   },
