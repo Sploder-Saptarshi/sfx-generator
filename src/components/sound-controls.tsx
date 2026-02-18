@@ -217,11 +217,11 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
             </div>
             <Button
               size="sm"
-              variant={params.envelopeShape === 'reverse-exponential' ? "default" : "outline"}
+              variant={params.envelopeShape === 'reverse' ? "default" : "outline"}
               className="w-full capitalize h-8 text-[10px]"
-              onClick={() => updateParam("envelopeShape", 'reverse-exponential')}
+              onClick={() => updateParam("envelopeShape", 'reverse')}
             >
-              Reverse Exponential
+              Reverse
             </Button>
           </div>
           <div className="space-y-2">

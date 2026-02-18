@@ -114,7 +114,6 @@ class AudioEngine {
     filter.frequency.setValueAtTime(cutoffFreq, now);
     filter.Q.setValueAtTime(params.filterResonance, now);
 
-    // Comb Filter implementation
     const combSum = this.ctx.createGain();
     const combDelay = this.ctx.createDelay(0.1);
     const combFeedback = this.ctx.createGain();
@@ -122,7 +121,6 @@ class AudioEngine {
     combDelay.delayTime.setValueAtTime(Math.max(0.0001, params.combDelay), now);
     combFeedback.gain.setValueAtTime(params.combAmount, now);
 
-    // Connect Comb
     masterGain.connect(combSum);
     combSum.connect(filter);
     
@@ -134,7 +132,6 @@ class AudioEngine {
     
     filter.connect(this.compressor);
 
-    // Effects
     if (params.reverbAmount > 0 && this.reverbBuffer) {
       const reverb = this.ctx.createConvolver();
       reverb.buffer = this.reverbBuffer;
@@ -164,10 +161,10 @@ class AudioEngine {
     if (params.envelopeShape === 'exponential') {
       env.gain.exponentialRampToValueAtTime(peakLevel, now + Math.max(0.001, params.attack));
       env.gain.exponentialRampToValueAtTime(0.001, now + params.attack + params.decay);
-    } else if (params.envelopeShape === 'reverse-exponential') {
+    } else if (params.envelopeShape === 'reverse') {
       env.gain.linearRampToValueAtTime(peakLevel, now + params.attack);
-      env.gain.setTargetAtTime(0.001, now + params.attack, params.decay / 3);
-    } else {
+      env.gain.linearRampToValueAtTime(0.001, now + params.attack + 0.01); // Sharp cut
+    } else { // Linear
       env.gain.linearRampToValueAtTime(peakLevel, now + params.attack);
       env.gain.linearRampToValueAtTime(0, now + params.attack + params.decay);
     }
@@ -250,7 +247,6 @@ class AudioEngine {
     filter.frequency.setValueAtTime(cutoffFreq, now);
     filter.Q.setValueAtTime(params.filterResonance, now);
     
-    // Comb for export
     const combSum = offlineCtx.createGain();
     const combDelay = offlineCtx.createDelay(0.1);
     const combFeedback = offlineCtx.createGain();
@@ -285,10 +281,10 @@ class AudioEngine {
     if (params.envelopeShape === 'exponential') {
       env.gain.exponentialRampToValueAtTime(peakLevel, now + Math.max(0.001, params.attack));
       env.gain.exponentialRampToValueAtTime(0.001, now + params.attack + params.decay);
-    } else if (params.envelopeShape === 'reverse-exponential') {
+    } else if (params.envelopeShape === 'reverse') {
       env.gain.linearRampToValueAtTime(peakLevel, now + params.attack);
-      env.gain.setTargetAtTime(0.001, now + params.attack, params.decay / 3);
-    } else {
+      env.gain.linearRampToValueAtTime(0.001, now + params.attack + 0.01);
+    } else { // Linear
       env.gain.linearRampToValueAtTime(peakLevel, now + params.attack);
       env.gain.linearRampToValueAtTime(0, now + params.attack + params.decay);
     }
