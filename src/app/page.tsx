@@ -37,6 +37,7 @@ import { Input } from "@/components/ui/input";
 export default function SoundSculptorApp() {
   const { toast } = useToast();
   const [params, setParams] = useState<SoundParams>(defaultSoundParams);
+  const [masterVolume, setMasterVolume] = useState(1.0);
   const [isInitialized, setIsInitialized] = useState(false);
   const [presets, setPresets] = useState<SoundParams[]>([]);
   
@@ -96,6 +97,11 @@ export default function SoundSculptorApp() {
       ...prev,
       ...newParams,
     }));
+  };
+
+  const handleUpdateMasterVolume = (val: number) => {
+    setMasterVolume(val);
+    audioEngine.setMasterVolume(val);
   };
 
   const handleSelectPreset = (newParams: SoundParams) => {
@@ -222,6 +228,8 @@ export default function SoundSculptorApp() {
                   <SoundControls 
                     params={params} 
                     setParams={handleUpdateParams} 
+                    masterVolume={masterVolume}
+                    setMasterVolume={handleUpdateMasterVolume}
                     onPresetsChange={() => {
                         const stored = localStorage.getItem("sound-presets");
                         if (stored) {
