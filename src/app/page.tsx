@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -77,7 +78,7 @@ export default function SoundSculptorApp() {
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
         {/* Left Panel: Library */}
         <div className="xl:col-span-1 hidden xl:block h-[calc(100vh-250px)]">
-          <PresetsList currentParams={params} onLoad={setParams} />
+          <PresetsList currentParams={params} onUpdateParams={setParams} />
         </div>
 
         {/* Center Panel: Controls & Visualizer */}
@@ -124,7 +125,7 @@ export default function SoundSculptorApp() {
 
         {/* Mobile Presets (Only visible on small screens) */}
         <div className="xl:hidden h-96">
-          <PresetsList currentParams={params} onLoad={setParams} />
+          <PresetsList currentParams={params} onUpdateParams={setParams} />
         </div>
       </div>
 
