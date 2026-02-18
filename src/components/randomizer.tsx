@@ -14,14 +14,16 @@ interface RandomizerProps {
 export default function Randomizer({ onRandomize }: RandomizerProps) {
   const [seed, setSeed] = useState<number>(() => Math.floor(Math.random() * 999999));
 
-  const handleRandomize = () => {
-    // Generate a fresh random seed
-    const newSeed = Math.floor(Math.random() * 999999);
+  const handleUpdateFromSeed = (newSeed: number) => {
     setSeed(newSeed);
-    
     // Use the core engine's seeding logic to generate params
     const randomParams = audioEngine.generateParamsFromSeed(newSeed);
     onRandomize(randomParams);
+  };
+
+  const handleRandomize = () => {
+    const newSeed = Math.floor(Math.random() * 999999);
+    handleUpdateFromSeed(newSeed);
   };
 
   return (
@@ -39,10 +41,12 @@ export default function Randomizer({ onRandomize }: RandomizerProps) {
               type="number"
               value={seed}
               onChange={(e) => {
-                const val = parseInt(e.target.value) || 0;
-                setSeed(val);
-                // Optionally generate params immediately when typing, 
-                // but usually user hits enter or randomize.
+                const val = parseInt(e.target.value);
+                if (!isNaN(val)) {
+                  handleUpdateFromSeed(val);
+                } else if (e.target.value === "") {
+                  setSeed(0);
+                }
               }}
               className="pl-12 h-10 bg-white/5 border-white/10 rounded-xl font-mono text-sm focus:ring-accent/50"
             />
