@@ -152,6 +152,10 @@ class AudioEngine {
     if (params.envelopeShape === 'exponential') {
       env.gain.exponentialRampToValueAtTime(peakLevel, now + Math.max(0.001, params.attack));
       env.gain.exponentialRampToValueAtTime(0.001, now + params.attack + params.decay);
+    } else if (params.envelopeShape === 'reverse-exponential') {
+      // Concave attack (slow rise), convex decay (fast fall)
+      env.gain.linearRampToValueAtTime(peakLevel, now + params.attack);
+      env.gain.setTargetAtTime(0.001, now + params.attack, params.decay / 3);
     } else {
       env.gain.linearRampToValueAtTime(peakLevel, now + params.attack);
       env.gain.linearRampToValueAtTime(0, now + params.attack + params.decay);
@@ -259,6 +263,9 @@ class AudioEngine {
     if (params.envelopeShape === 'exponential') {
       env.gain.exponentialRampToValueAtTime(peakLevel, now + Math.max(0.001, params.attack));
       env.gain.exponentialRampToValueAtTime(0.001, now + params.attack + params.decay);
+    } else if (params.envelopeShape === 'reverse-exponential') {
+      env.gain.linearRampToValueAtTime(peakLevel, now + params.attack);
+      env.gain.setTargetAtTime(0.001, now + params.attack, params.decay / 3);
     } else {
       env.gain.linearRampToValueAtTime(peakLevel, now + params.attack);
       env.gain.linearRampToValueAtTime(0, now + params.attack + params.decay);

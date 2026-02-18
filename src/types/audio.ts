@@ -1,6 +1,6 @@
 export type WaveformType = 'sine' | 'square' | 'sawtooth' | 'triangle';
 export type NoiseType = 'white' | 'brown' | 'pink' | 'velvet';
-export type EnvelopeShape = 'linear' | 'exponential';
+export type EnvelopeShape = 'linear' | 'exponential' | 'reverse-exponential';
 export type FilterType = 'lowpass' | 'highpass' | 'bandpass';
 
 export interface SoundParams {

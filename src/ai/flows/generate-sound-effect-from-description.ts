@@ -27,8 +27,8 @@ const GenerateSoundEffectFromDescriptionOutputSchema = z.object({
     .max(2)
     .describe('The decay time of the sound in seconds (0 to 2).'),
   envelopeShape: z
-    .enum(['linear', 'exponential'])
-    .describe('The shape of the volume envelope. Exponential is punchier, linear is mechanical.'),
+    .enum(['linear', 'exponential', 'reverse-exponential'])
+    .describe('The shape of the volume envelope. Exponential is punchier, linear is mechanical, reverse-exponential is swelling.'),
   baseFrequency: z
     .number()
     .min(20)
@@ -113,7 +113,7 @@ Description: {{{this}}}
 
 Guidelines for Sculpting:
 - Use "quantize" for retro, chiptune, or stepped pitch effects. 12 is typical chromatic tuning.
-- Use "envelopeShape" = "exponential" for percussive or natural sounds, "linear" for robotic/synth sounds.
+- Use "envelopeShape" = "exponential" for percussive or natural sounds, "linear" for robotic/synth sounds, "reverse-exponential" for swelling/rising sounds.
 - Use "noiseModulation" for broken, grit, or debris-like sounds.
 - Use "filterCutoff" to dampen sounds. 0 means bypass. For bright sounds use 0 or high values. For muffled sounds use 200-800.
 - For "lo-fi" sounds, use low filterCutoff and high noiseModulation.`,
