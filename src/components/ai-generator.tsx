@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { generateSoundEffectFromDescription, isAiConfigured } from "@/ai/flows/generate-sound-effect-from-description";
-import { SoundParams } from "@/types/audio";
+import { defaultSoundParams, SoundParams } from "@/types/audio";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sparkles, Loader2 } from "lucide-react";
@@ -36,7 +36,9 @@ export default function AiGenerator({ onGenerated }: AiGeneratorProps) {
     setLoading(true);
     try {
       const result = await generateSoundEffectFromDescription(prompt);
+      // Merge with defaultSoundParams to ensure all required fields (like filterType) are present
       onGenerated({
+        ...defaultSoundParams,
         ...result,
         name: prompt.length > 20 ? prompt.substring(0, 20) + "..." : prompt,
         waveformPairs: result.waveformPairs as any,
