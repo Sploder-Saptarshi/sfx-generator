@@ -74,6 +74,8 @@ export default function SoundSculptorApp() {
             variant="outline" 
             size="icon" 
             className="rounded-full"
+            aria-label="Copy share URL"
+            title="Copy share URL"
             onClick={() => {
               const url = window.location.href;
               const copyToClipboard = () => {
