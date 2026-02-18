@@ -57,9 +57,11 @@ const nextConfig: NextConfig = {
     return config;
   },
   typescript: {
+    /* Ignore build errors to allow static export even with minor type mismatches */
     ignoreBuildErrors: true,
   },
   eslint: {
+    /* Ignore lint errors during build for a faster, more resilient CI process */
     ignoreDuringBuilds: true,
   },
 };

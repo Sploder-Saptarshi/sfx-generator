@@ -79,7 +79,7 @@ Guidelines:
       inputSchema: GenerateSoundEffectFromDescriptionInputSchema,
       outputSchema: GenerateSoundEffectFromDescriptionOutputSchema,
     },
-    async input => {
+    async (input: GenerateSoundEffectFromDescriptionInput) => {
       const {output} = await generateSoundEffectPrompt(input);
       return output!;
     }
