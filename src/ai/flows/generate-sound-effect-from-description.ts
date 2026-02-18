@@ -20,12 +20,12 @@ const GenerateSoundEffectFromDescriptionOutputSchema = z.object({
     .number()
     .min(0)
     .max(1)
-    .describe('The attack time of the sound in seconds (0 to 1). A lower value means a faster attack.'),
+    .describe('The attack time of the sound in seconds (0 to 1).'),
   decay: z
     .number()
     .min(0)
     .max(1)
-    .describe('The decay time of the sound in seconds (0 to 1). A lower value means a faster decay.'),
+    .describe('The decay time of the sound in seconds (0 to 1).'),
   baseFrequency: z
     .number()
     .min(20)
@@ -35,40 +35,48 @@ const GenerateSoundEffectFromDescriptionOutputSchema = z.object({
     .number()
     .min(0)
     .max(1)
-    .describe('A value representing the harmonic complexity or richness of the sound (0 to 1). 0 for simple, 1 for rich harmonics.'),
+    .describe('Harmonic complexity (0 to 1).'),
   timbre: z
     .string()
-    .describe('A descriptive string of the sound\'s tonal quality (e.g., "bright", "mellow", "harsh", "metallic", "airy").'),
+    .describe('Tonal quality description.'),
   waveformPairs: z
-    .array(z.enum(['sine', 'square', 'sawtooth', 'triangle', 'noise']))
+    .array(z.enum(['sine', 'square', 'sawtooth', 'triangle']))
     .min(1)
     .max(2)
-    .describe('An array containing one or two waveform types to blend. Valid types are "sine", "square", "sawtooth", "triangle", "noise".'),
+    .describe('Oscillator waveforms to blend.'),
+  noiseAmount: z
+    .number()
+    .min(0)
+    .max(1)
+    .describe('The volume of the noise layer (0 to 1).'),
+  noiseType: z
+    .enum(['white', 'pink', 'brown', 'velvet'])
+    .describe('The flavor of noise. Use "white" for harsh, "pink" for natural/rain, "brown" for deep/rumble, "velvet" for clicks.'),
   vibratoDepth: z
     .number()
     .min(0)
     .max(1)
-    .describe('The depth of the vibrato effect (0 to 1). 0 for no vibrato, 1 for maximum depth.'),
+    .describe('Vibrato intensity (0 to 1).'),
   vibratoRate: z
     .number()
     .min(0)
     .max(20)
-    .describe('The rate of the vibrato effect in Hz (0 to 20). 0 for no vibrato.'),
+    .describe('Vibrato rate in Hz (0 to 20).'),
   reverbAmount: z
     .number()
     .min(0)
     .max(1)
-    .describe('The amount of reverb applied to the sound (0 to 1). 0 for no reverb, 1 for maximum reverb.'),
+    .describe('Reverb mix (0 to 1).'),
   echoAmount: z
     .number()
     .min(0)
     .max(1)
-    .describe('The amount of echo applied to the sound (0 to 1). 0 for no echo, 1 for maximum echo.'),
+    .describe('Echo mix (0 to 1).'),
   echoDelay: z
     .number()
     .min(0.01)
     .max(2)
-    .describe('The delay time of the echo effect in seconds (0.01 to 2).'),
+    .describe('Echo delay time (0.01 to 2).'),
 });
 export type GenerateSoundEffectFromDescriptionOutput = z.infer<typeof GenerateSoundEffectFromDescriptionOutputSchema>;
 
@@ -76,25 +84,15 @@ const generateSoundEffectPrompt = ai.definePrompt({
   name: 'generateSoundEffectPrompt',
   input: {schema: GenerateSoundEffectFromDescriptionInputSchema},
   output: {schema: GenerateSoundEffectFromDescriptionOutputSchema},
-  prompt: `You are an expert sound designer AI. Your task is to interpret a text description of a sound effect and generate a set of sound parameters that would create that effect.
+  prompt: `You are an expert sound designer. Interpret the following description and generate synthesis parameters.
 
-Here is the description of the desired sound effect: {{{this}}}
+Description: {{{this}}}
 
-Carefully consider the description and generate the appropriate values for attack, decay, base frequency, harmony, timbre, waveform pairs, vibrato depth and rate, reverb amount, echo amount, and echo delay.
-
-- Attack: How quickly the sound reaches its peak volume. (0 to 1 seconds)
-- Decay: How quickly the sound fades out after the attack. (0 to 1 seconds)
-- Base Frequency: The fundamental pitch of the sound. (20 to 20000 Hz)
-- Harmony: The richness or complexity of the overtones. (0 to 1, where 0 is simple and 1 is rich)
-- Timbre: A descriptive string of the sound's tonal quality.
-- Waveform Pairs: One or two primary waveforms that make up the sound. Choose from: "sine", "square", "sawtooth", "triangle", "noise".
-- Vibrato Depth: The intensity of the pitch modulation. (0 to 1)
-- Vibrato Rate: How fast the pitch modulates. (0 to 20 Hz)
-- Reverb Amount: The intensity of the spatial reverb effect. (0 to 1)
-- Echo Amount: The intensity of the echo effect. (0 to 1)
-- Echo Delay: The time between echoes. (0.01 to 2 seconds)
-
-Provide the output in a JSON object strictly conforming to the output schema.`,
+Guidelines:
+- If the sound is "noisy", "windy", or "mechanical", increase noiseAmount.
+- Choose noiseType: 'white' (static/harsh), 'pink' (soothing/rain), 'brown' (low rumble), 'velvet' (sparse sparks).
+- Set oscillators (waveformPairs) for tonal elements.
+- Use reverbAmount and echoAmount for space.`,
 });
 
 const generateSoundEffectFromDescriptionFlow = ai.defineFlow(

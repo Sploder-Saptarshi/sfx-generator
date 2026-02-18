@@ -1,4 +1,4 @@
-import { SoundParams, WaveformType } from "@/types/audio";
+import { SoundParams, WaveformType, NoiseType } from "@/types/audio";
 
 class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -35,6 +35,51 @@ class AudioEngine {
     this.reverbBuffer = buffer;
   }
 
+  private createNoiseBuffer(type: NoiseType): AudioBuffer {
+    const sampleRate = this.ctx!.sampleRate;
+    const bufferSize = 2 * sampleRate;
+    const buffer = this.ctx!.createBuffer(1, bufferSize, sampleRate);
+    const output = buffer.getChannelData(0);
+
+    if (type === 'white') {
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = Math.random() * 2 - 1;
+      }
+    } else if (type === 'pink') {
+      let b0, b1, b2, b3, b4, b5, b6;
+      b0 = b1 = b2 = b3 = b4 = b5 = b6 = 0.0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        b0 = 0.99886 * b0 + white * 0.0555179;
+        b1 = 0.99332 * b1 + white * 0.0750759;
+        b2 = 0.96900 * b2 + white * 0.1538520;
+        b3 = 0.86650 * b3 + white * 0.3104856;
+        b4 = 0.55000 * b4 + white * 0.5329522;
+        b5 = -0.7616 * b5 - white * 0.0168980;
+        output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+        output[i] *= 0.11;
+        b6 = white * 0.115926;
+      }
+    } else if (type === 'brown') {
+      let lastOut = 0.0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        const out = (lastOut + (0.02 * white)) / 1.02;
+        lastOut = out;
+        output[i] = out * 3.5;
+      }
+    } else if (type === 'velvet') {
+      for (let i = 0; i < bufferSize; i++) {
+        if (Math.random() < 0.02) {
+          output[i] = Math.random() < 0.5 ? 1 : -1;
+        } else {
+          output[i] = 0;
+        }
+      }
+    }
+    return buffer;
+  }
+
   play(params: SoundParams) {
     if (!this.ctx || !this.analyser) return;
 
@@ -42,7 +87,7 @@ class AudioEngine {
     const masterGain = this.ctx.createGain();
     masterGain.connect(this.analyser);
 
-    // Reverb
+    // Effects routing
     if (params.reverbAmount > 0 && this.reverbBuffer) {
       const reverb = this.ctx.createConvolver();
       reverb.buffer = this.reverbBuffer;
@@ -53,7 +98,6 @@ class AudioEngine {
       reverbGain.connect(this.analyser);
     }
 
-    // Echo
     if (params.echoAmount > 0) {
       const delay = this.ctx.createDelay(2.0);
       delay.delayTime.value = params.echoDelay;
@@ -65,54 +109,48 @@ class AudioEngine {
       delay.connect(this.analyser);
     }
 
-    // Envelope
     const env = this.ctx.createGain();
     env.gain.setValueAtTime(0, now);
     env.gain.linearRampToValueAtTime(1, now + params.attack);
     env.gain.exponentialRampToValueAtTime(0.001, now + params.attack + params.decay);
     env.connect(masterGain);
 
+    // Noise layer
+    if (params.noiseAmount > 0) {
+      const noiseSource = this.ctx.createBufferSource();
+      noiseSource.buffer = this.createNoiseBuffer(params.noiseType);
+      noiseSource.loop = true;
+      const noiseGain = this.ctx.createGain();
+      noiseGain.gain.value = params.noiseAmount;
+      noiseSource.connect(noiseGain);
+      noiseGain.connect(env);
+      noiseSource.start(now);
+      noiseSource.stop(now + params.attack + params.decay);
+    }
+
     // Oscillators
     params.waveformPairs.forEach((wf, index) => {
       const freq = params.baseFrequency * (index === 1 ? (1 + params.harmony) : 1);
-      
-      if (wf === 'noise') {
-        const bufferSize = 2 * this.ctx!.sampleRate;
-        const noiseBuffer = this.ctx!.createBuffer(1, bufferSize, this.ctx!.sampleRate);
-        const output = noiseBuffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-          output[i] = Math.random() * 2 - 1;
-        }
-        const noise = this.ctx!.createBufferSource();
-        noise.buffer = noiseBuffer;
-        noise.loop = true;
-        noise.connect(env);
-        noise.start(now);
-        noise.stop(now + params.attack + params.decay);
-      } else {
-        const osc = this.ctx!.createOscillator();
-        osc.type = wf as OscillatorType;
-        osc.frequency.setValueAtTime(freq, now);
+      const osc = this.ctx!.createOscillator();
+      osc.type = wf as OscillatorType;
+      osc.frequency.setValueAtTime(freq, now);
 
-        // Vibrato
-        if (params.vibratoDepth > 0) {
-          const lfo = this.ctx!.createOscillator();
-          const lfoGain = this.ctx!.createGain();
-          lfo.frequency.value = params.vibratoRate;
-          lfoGain.gain.value = params.vibratoDepth * 50;
-          lfo.connect(lfoGain);
-          lfoGain.connect(osc.frequency);
-          lfo.start(now);
-          lfo.stop(now + params.attack + params.decay);
-        }
-
-        osc.connect(env);
-        osc.start(now);
-        osc.stop(now + params.attack + params.decay);
+      if (params.vibratoDepth > 0) {
+        const lfo = this.ctx!.createOscillator();
+        const lfoGain = this.ctx!.createGain();
+        lfo.frequency.value = params.vibratoRate;
+        lfoGain.gain.value = params.vibratoDepth * 50;
+        lfo.connect(lfoGain);
+        lfoGain.connect(osc.frequency);
+        lfo.start(now);
+        lfo.stop(now + params.attack + params.decay);
       }
+
+      osc.connect(env);
+      osc.start(now);
+      osc.stop(now + params.attack + params.decay);
     });
 
-    // Cleanup master after sound finishes
     setTimeout(() => {
         masterGain.disconnect();
     }, (params.attack + params.decay + params.echoDelay * 4) * 1000 + 100);
@@ -121,16 +159,11 @@ class AudioEngine {
   async exportToWav(params: SoundParams): Promise<Blob> {
     const sampleRate = 44100;
     const duration = params.attack + params.decay + (params.echoAmount > 0 ? params.echoDelay * 4 : 0);
-    const offlineCtx = new OfflineAudioContext(1, sampleRate * duration, sampleRate);
+    const offlineCtx = new OfflineAudioContext(1, sampleRate * Math.max(0.1, duration), sampleRate);
 
-    // Redo standard synthesis in offline context
     const now = 0;
     const masterGain = offlineCtx.createGain();
     masterGain.connect(offlineCtx.destination);
-
-    if (params.reverbAmount > 0) {
-        // Mock reverb for export is hard without buffer, skipping for simplicity in this helper
-    }
 
     const env = offlineCtx.createGain();
     env.gain.setValueAtTime(0, now);
@@ -138,25 +171,26 @@ class AudioEngine {
     env.gain.exponentialRampToValueAtTime(0.001, now + params.attack + params.decay);
     env.connect(masterGain);
 
+    if (params.noiseAmount > 0) {
+      // Offline noise creation uses same logic but different context
+      const noiseBuffer = this.createNoiseBuffer(params.noiseType);
+      const noiseSource = offlineCtx.createBufferSource();
+      noiseSource.buffer = noiseBuffer;
+      noiseSource.loop = true;
+      const noiseGain = offlineCtx.createGain();
+      noiseGain.gain.value = params.noiseAmount;
+      noiseSource.connect(noiseGain);
+      noiseGain.connect(env);
+      noiseSource.start(now);
+    }
+
     params.waveformPairs.forEach((wf, index) => {
       const freq = params.baseFrequency * (index === 1 ? (1 + params.harmony) : 1);
-      if (wf === 'noise') {
-        const bufferSize = 2 * sampleRate;
-        const noiseBuffer = offlineCtx.createBuffer(1, bufferSize, sampleRate);
-        const output = noiseBuffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
-        const noise = offlineCtx.createBufferSource();
-        noise.buffer = noiseBuffer;
-        noise.loop = true;
-        noise.connect(env);
-        noise.start(now);
-      } else {
-        const osc = offlineCtx.createOscillator();
-        osc.type = wf as OscillatorType;
-        osc.frequency.setValueAtTime(freq, now);
-        osc.connect(env);
-        osc.start(now);
-      }
+      const osc = offlineCtx.createOscillator();
+      osc.type = wf as OscillatorType;
+      osc.frequency.setValueAtTime(freq, now);
+      osc.connect(env);
+      osc.start(now);
     });
 
     const renderedBuffer = await offlineCtx.startRendering();

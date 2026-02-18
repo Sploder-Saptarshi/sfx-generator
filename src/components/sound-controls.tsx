@@ -1,10 +1,10 @@
 "use client";
 
-import { SoundParams, WaveformType } from "@/types/audio";
+import { SoundParams, WaveformType, NoiseType } from "@/types/audio";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { Waves, Zap, Activity, Radio, Music, Wind } from "lucide-react";
+import { Waves, Zap, Activity, Radio, Music, Wind, Volume2 } from "lucide-react";
 
 interface SoundControlsProps {
   params: SoundParams;
@@ -37,10 +37,10 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
       <div className="space-y-4 p-4 glass-panel rounded-2xl">
         <div className="flex items-center gap-2 mb-2">
           <Waves className="w-4 h-4 text-primary" />
-          <h3 className="text-sm font-bold uppercase tracking-wider text-primary">Waveforms</h3>
+          <h3 className="text-sm font-bold uppercase tracking-wider text-primary">Oscillators</h3>
         </div>
         <div className="flex flex-wrap gap-2">
-          {(["sine", "square", "sawtooth", "triangle", "noise"] as WaveformType[]).map((wf) => (
+          {(["sine", "square", "sawtooth", "triangle"] as WaveformType[]).map((wf) => (
             <Button
               key={wf}
               variant={params.waveformPairs.includes(wf) ? "default" : "outline"}
@@ -50,6 +50,41 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
               {wf}
             </Button>
           ))}
+        </div>
+      </div>
+
+      {/* Noise Section */}
+      <div className="space-y-6 p-4 glass-panel rounded-2xl border-accent/20">
+        <div className="flex items-center gap-2 mb-2">
+          <Volume2 className="w-4 h-4 text-accent" />
+          <h3 className="text-sm font-bold uppercase tracking-wider text-accent">Noise Layer</h3>
+        </div>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <Label>Amount</Label>
+              <span className="text-muted-foreground">{(params.noiseAmount * 100).toFixed(0)}%</span>
+            </div>
+            <Slider
+              value={[params.noiseAmount]}
+              max={1}
+              step={0.01}
+              onValueChange={([val]) => updateParam("noiseAmount", val)}
+            />
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {(["white", "pink", "brown", "velvet"] as NoiseType[]).map((type) => (
+              <Button
+                key={type}
+                size="sm"
+                variant={params.noiseType === type ? "secondary" : "ghost"}
+                className="capitalize flex-1 text-[10px] h-7"
+                onClick={() => updateParam("noiseType", type)}
+              >
+                {type}
+              </Button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -87,7 +122,7 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
         </div>
       </div>
 
-      {/* Frequency & Harmony */}
+      {/* Tuning */}
       <div className="space-y-6 p-4 glass-panel rounded-2xl">
         <div className="flex items-center gap-2 mb-2">
           <Radio className="w-4 h-4 text-primary" />
@@ -158,52 +193,35 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
       </div>
 
       {/* Effects */}
-      <div className="space-y-6 p-4 glass-panel rounded-2xl lg:col-span-2">
+      <div className="space-y-6 p-4 glass-panel rounded-2xl">
         <div className="flex items-center gap-2 mb-2">
           <Wind className="w-4 h-4 text-primary" />
-          <h3 className="text-sm font-bold uppercase tracking-wider text-primary">Space & Presence</h3>
+          <h3 className="text-sm font-bold uppercase tracking-wider text-primary">Space</h3>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs">
-                <Label>Reverb</Label>
-                <span className="text-muted-foreground">{(params.reverbAmount * 100).toFixed(0)}%</span>
-              </div>
-              <Slider
-                value={[params.reverbAmount]}
-                max={1}
-                step={0.01}
-                onValueChange={([val]) => updateParam("reverbAmount", val)}
-              />
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <Label>Reverb</Label>
+              <span className="text-muted-foreground">{(params.reverbAmount * 100).toFixed(0)}%</span>
             </div>
+            <Slider
+              value={[params.reverbAmount]}
+              max={1}
+              step={0.01}
+              onValueChange={([val]) => updateParam("reverbAmount", val)}
+            />
           </div>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs">
-                <Label>Echo Amount</Label>
-                <span className="text-muted-foreground">{(params.echoAmount * 100).toFixed(0)}%</span>
-              </div>
-              <Slider
-                value={[params.echoAmount]}
-                max={1}
-                step={0.01}
-                onValueChange={([val]) => updateParam("echoAmount", val)}
-              />
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <Label>Echo</Label>
+              <span className="text-muted-foreground">{(params.echoAmount * 100).toFixed(0)}%</span>
             </div>
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs">
-                <Label>Echo Delay</Label>
-                <span className="text-muted-foreground">{params.echoDelay.toFixed(2)}s</span>
-              </div>
-              <Slider
-                value={[params.echoDelay]}
-                min={0.01}
-                max={2}
-                step={0.01}
-                onValueChange={([val]) => updateParam("echoDelay", val)}
-              />
-            </div>
+            <Slider
+              value={[params.echoAmount]}
+              max={1}
+              step={0.01}
+              onValueChange={([val]) => updateParam("echoAmount", val)}
+            />
           </div>
         </div>
       </div>
