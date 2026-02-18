@@ -14,7 +14,8 @@ import {
   Volume2, 
   Settings2,
   ChevronDown,
-  Download
+  Download,
+  X
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -93,10 +94,25 @@ export default function Composer({ library }: ComposerProps) {
     localStorage.setItem("sound-composition", JSON.stringify(newComp));
   };
 
-  const toggleStep = (trackIndex: number, stepIndex: number) => {
+  const handleCellClick = (tIdx: number, sIdx: number) => {
     const newTracks = [...comp.tracks];
-    newTracks[trackIndex].steps[stepIndex] = !newTracks[trackIndex].steps[stepIndex];
+    // If it's not active, activate it first with a default note
+    if (!newTracks[tIdx].steps[sIdx]) {
+      newTracks[tIdx].steps[sIdx] = true;
+      newTracks[tIdx].stepNotes[sIdx] = "C4";
+      saveComp({ ...comp, tracks: newTracks });
+    }
+    // Open picker
+    setEditingStep({ tIdx, sIdx });
+  };
+
+  const removeStep = (tIdx: number, sIdx: number) => {
+    const newTracks = [...comp.tracks];
+    newTracks[tIdx].steps[sIdx] = false;
     saveComp({ ...comp, tracks: newTracks });
+    if (editingStep?.tIdx === tIdx && editingStep?.sIdx === sIdx) {
+      setEditingStep(null);
+    }
   };
 
   const setStepNote = (trackIndex: number, stepIndex: number, note: string) => {
@@ -149,8 +165,13 @@ export default function Composer({ library }: ComposerProps) {
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const key = e.key.toUpperCase();
+      // Melodic notes
       if (["A", "B", "C", "D", "E", "F", "G"].includes(key)) {
         setStepNote(editingStep.tIdx, editingStep.sIdx, `${key}4`);
+      }
+      // Removal shortcut
+      if (key === "X") {
+        removeStep(editingStep.tIdx, editingStep.sIdx);
       }
       if (e.key === "Escape") setEditingStep(null);
     };
@@ -285,51 +306,61 @@ export default function Composer({ library }: ComposerProps) {
             <div className="flex-1 grid grid-cols-8 gap-2 h-12">
               {track.steps.map((isActive, sIdx) => (
                 <div key={sIdx} className="relative group/cell">
-                  <button
-                    onClick={() => toggleStep(tIdx, sIdx)}
-                    className={`w-full h-full rounded-xl border transition-all duration-200 active:scale-90 flex flex-col items-center justify-center ${
-                      isActive 
-                        ? 'bg-accent shadow-lg shadow-accent/40 border-accent' 
-                        : 'bg-white/5 border-white/5 hover:border-white/20'
-                    } ${activeStep === sIdx ? 'ring-2 ring-white/40' : ''}`}
+                  <Popover 
+                    open={editingStep?.tIdx === tIdx && editingStep?.sIdx === sIdx} 
+                    onOpenChange={(open) => setEditingStep(open ? {tIdx, sIdx} : null)}
                   >
-                    {activeStep === sIdx && (
-                        <div className="absolute inset-0 bg-white/20 animate-pulse rounded-xl pointer-events-none" />
-                    )}
-                    {isActive && (
-                        <span className="text-[10px] font-bold text-white/80 select-none">
-                            {track.stepNotes[sIdx].replace(/[0-9]/, '')}
-                        </span>
-                    )}
-                  </button>
+                    <PopoverTrigger asChild>
+                      <button
+                        onClick={() => handleCellClick(tIdx, sIdx)}
+                        className={`w-full h-full rounded-xl border transition-all duration-200 active:scale-95 flex flex-col items-center justify-center ${
+                          isActive 
+                            ? 'bg-accent shadow-lg shadow-accent/40 border-accent' 
+                            : 'bg-white/5 border-white/5 hover:border-white/20'
+                        } ${activeStep === sIdx ? 'ring-2 ring-white/40' : ''}`}
+                      >
+                        {activeStep === sIdx && (
+                            <div className="absolute inset-0 bg-white/20 animate-pulse rounded-xl pointer-events-none" />
+                        )}
+                        {isActive && (
+                            <span className="text-[10px] font-bold text-white/80 select-none">
+                                {track.stepNotes[sIdx].replace(/[0-9]/, '')}
+                            </span>
+                        )}
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-48 glass-panel p-2">
+                        <div className="grid grid-cols-4 gap-1">
+                            {NOTES_POOL.map(note => (
+                                <Button 
+                                    key={note} 
+                                    size="sm" 
+                                    variant={track.stepNotes[sIdx] === note ? "default" : "ghost"}
+                                    className="h-8 text-[10px] font-bold"
+                                    onClick={() => setStepNote(tIdx, sIdx, note)}
+                                >
+                                    {note.replace(/[0-9]/, '')}
+                                </Button>
+                            ))}
+                        </div>
+                        <div className="mt-2 text-[8px] text-muted-foreground text-center uppercase tracking-widest font-bold">
+                            Shortcut: Press A-G or X
+                        </div>
+                    </PopoverContent>
+                  </Popover>
 
-                  {/* Note Picker Popover */}
+                  {/* Corner Remove Button (X) */}
                   {isActive && (
-                    <Popover open={editingStep?.tIdx === tIdx && editingStep?.sIdx === sIdx} onOpenChange={(open) => setEditingStep(open ? {tIdx, sIdx} : null)}>
-                        <PopoverTrigger asChild>
-                            <button className="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full opacity-0 group-hover/cell:opacity-100 flex items-center justify-center shadow-sm transition-opacity">
-                                <span className="text-[8px] font-bold text-accent">✎</span>
-                            </button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-48 glass-panel p-2">
-                            <div className="grid grid-cols-4 gap-1">
-                                {NOTES_POOL.map(note => (
-                                    <Button 
-                                        key={note} 
-                                        size="sm" 
-                                        variant={track.stepNotes[sIdx] === note ? "default" : "ghost"}
-                                        className="h-8 text-[10px] font-bold"
-                                        onClick={() => setStepNote(tIdx, sIdx, note)}
-                                    >
-                                        {note.replace(/[0-9]/, '')}
-                                    </Button>
-                                ))}
-                            </div>
-                            <div className="mt-2 text-[8px] text-muted-foreground text-center uppercase tracking-widest font-bold">
-                                Shortcut: Press A-G keys
-                            </div>
-                        </PopoverContent>
-                    </Popover>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeStep(tIdx, sIdx);
+                      }}
+                      className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover/cell:opacity-100 flex items-center justify-center shadow-md transition-opacity z-10 hover:scale-110 active:scale-90"
+                      title="Remove Note (Shortcut: X)"
+                    >
+                        <X className="w-3 h-3" strokeWidth={3} />
+                    </button>
                   )}
                 </div>
               ))}
