@@ -16,7 +16,7 @@ export type GenerateSoundEffectFromDescriptionInput = z.infer<typeof GenerateSou
 const GenerateSoundEffectFromDescriptionOutputSchema = z.object({
   attack: z.number().min(0).max(1),
   decay: z.number().min(0).max(2),
-  envelopeShape: z.enum(['linear', 'exponential', 'reverse']),
+  envelopeShape: z.enum(['piano', 'strings', 'percussive', 'reverse']),
   baseFrequency: z.number().min(20).max(20000),
   harmony: z.number().min(0).max(1),
   quantize: z.number().min(0).max(48),
@@ -46,12 +46,15 @@ const generateSoundEffectPrompt = ai.definePrompt({
 Description: {{{this}}}
 
 Guidelines:
+- "envelopeShape": 
+    - "piano": Standard decay, snappy but natural.
+    - "strings": Slow, fading textures.
+    - "percussive": Explosive, immediate hits.
+    - "reverse": Swelling, rising effects.
 - Use "combAmount" and "combDelay" for metallic, industrial, robotic, or ringing textures. Higher combAmount (0.7-0.9) creates strong resonance.
 - Use "quantize" for retro, chiptune, or stepped pitch effects.
-- Use "envelopeShape" = "reverse" for swelling, rising, or sudden percussive hits.
-- Use "envelopeShape" = "linear" for consistent, standard fades.
 - Use "noiseModulation" for grit and debris.
-- Use "filterCutoff" to dampen sounds. 0 means bypass.`,
+- Use "filterCutoff" to muffle sounds. 0 means off.`,
 });
 
 const generateSoundEffectFromDescriptionFlow = ai.defineFlow(

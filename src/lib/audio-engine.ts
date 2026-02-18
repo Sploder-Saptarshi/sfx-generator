@@ -158,15 +158,18 @@ class AudioEngine {
     
     const peakLevel = 0.6 / (params.waveformPairs.length || 1);
     
-    if (params.envelopeShape === 'exponential') {
+    if (params.envelopeShape === 'piano') {
       env.gain.exponentialRampToValueAtTime(peakLevel, now + Math.max(0.001, params.attack));
       env.gain.exponentialRampToValueAtTime(0.001, now + params.attack + params.decay);
+    } else if (params.envelopeShape === 'strings') {
+      env.gain.linearRampToValueAtTime(peakLevel, now + params.attack);
+      env.gain.linearRampToValueAtTime(0, now + params.attack + params.decay);
+    } else if (params.envelopeShape === 'percussive') {
+      env.gain.setTargetAtTime(peakLevel, now, 0.005);
+      env.gain.exponentialRampToValueAtTime(0.001, now + 0.005 + params.decay);
     } else if (params.envelopeShape === 'reverse') {
       env.gain.linearRampToValueAtTime(peakLevel, now + params.attack);
       env.gain.linearRampToValueAtTime(0.001, now + params.attack + 0.01); // Sharp cut
-    } else { // Linear
-      env.gain.linearRampToValueAtTime(peakLevel, now + params.attack);
-      env.gain.linearRampToValueAtTime(0, now + params.attack + params.decay);
     }
     
     env.connect(masterGain);
@@ -278,16 +281,20 @@ class AudioEngine {
     env.gain.setValueAtTime(0, now);
     const peakLevel = 0.6 / (params.waveformPairs.length || 1);
 
-    if (params.envelopeShape === 'exponential') {
+    if (params.envelopeShape === 'piano') {
       env.gain.exponentialRampToValueAtTime(peakLevel, now + Math.max(0.001, params.attack));
       env.gain.exponentialRampToValueAtTime(0.001, now + params.attack + params.decay);
+    } else if (params.envelopeShape === 'strings') {
+      env.gain.linearRampToValueAtTime(peakLevel, now + params.attack);
+      env.gain.linearRampToValueAtTime(0, now + params.attack + params.decay);
+    } else if (params.envelopeShape === 'percussive') {
+      env.gain.setTargetAtTime(peakLevel, now, 0.005);
+      env.gain.exponentialRampToValueAtTime(0.001, now + 0.005 + params.decay);
     } else if (params.envelopeShape === 'reverse') {
       env.gain.linearRampToValueAtTime(peakLevel, now + params.attack);
       env.gain.linearRampToValueAtTime(0.001, now + params.attack + 0.01);
-    } else { // Linear
-      env.gain.linearRampToValueAtTime(peakLevel, now + params.attack);
-      env.gain.linearRampToValueAtTime(0, now + params.attack + params.decay);
     }
+    
     env.connect(masterGain);
 
     let noiseModNode: GainNode | null = null;

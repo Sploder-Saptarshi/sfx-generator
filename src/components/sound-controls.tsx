@@ -202,30 +202,20 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
           <h3 className="text-sm font-bold uppercase tracking-wider text-accent">Envelope</h3>
         </div>
         <div className="space-y-4">
-          <div className="flex flex-col gap-2">
-            <div className="flex gap-2">
-              {(["linear", "exponential"] as EnvelopeShape[]).map((shape) => (
-                <Button
-                  key={shape}
-                  size="sm"
-                  variant={params.envelopeShape === shape ? "default" : "outline"}
-                  className="flex-1 capitalize h-8 text-[10px]"
-                  onClick={() => updateParam("envelopeShape", shape)}
-                >
-                  {shape}
-                </Button>
-              ))}
-            </div>
-            <Button
-              size="sm"
-              variant={params.envelopeShape === 'reverse' ? "default" : "outline"}
-              className="w-full capitalize h-8 text-[10px]"
-              onClick={() => updateParam("envelopeShape", 'reverse')}
-            >
-              Reverse
-            </Button>
+          <div className="grid grid-cols-2 gap-2">
+            {(["piano", "strings", "percussive", "reverse"] as EnvelopeShape[]).map((shape) => (
+              <Button
+                key={shape}
+                size="sm"
+                variant={params.envelopeShape === shape ? "default" : "outline"}
+                className="capitalize h-8 text-[10px]"
+                onClick={() => updateParam("envelopeShape", shape)}
+              >
+                {shape}
+              </Button>
+            ))}
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 pt-2 border-t border-white/5">
             <div className="flex justify-between text-xs">
               <Label>Attack</Label>
               <span className="text-muted-foreground">{params.attack.toFixed(2)}s</span>

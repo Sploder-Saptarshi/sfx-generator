@@ -1,6 +1,6 @@
 export type WaveformType = 'sine' | 'square' | 'sawtooth' | 'triangle';
 export type NoiseType = 'white' | 'brown' | 'pink' | 'velvet';
-export type EnvelopeShape = 'linear' | 'exponential' | 'reverse';
+export type EnvelopeShape = 'piano' | 'strings' | 'percussive' | 'reverse';
 export type FilterType = 'lowpass' | 'highpass' | 'bandpass';
 
 export interface SoundParams {
@@ -34,7 +34,7 @@ export const defaultSoundParams: SoundParams = {
   name: "New Sound",
   attack: 0.1,
   decay: 0.5,
-  envelopeShape: 'exponential',
+  envelopeShape: 'piano',
   baseFrequency: 440,
   harmony: 0.5,
   quantize: 0,
