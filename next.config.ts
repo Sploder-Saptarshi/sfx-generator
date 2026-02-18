@@ -1,14 +1,11 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  /* Static export configuration for GitHub Pages */
+  output: 'export',
+  /* Images must be unoptimized for static hosting */
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
@@ -29,6 +26,12 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
   },
 };
 
