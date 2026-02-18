@@ -3,8 +3,12 @@ import type {NextConfig} from 'next';
 const nextConfig: NextConfig = {
   /* Static export configuration for GitHub Pages */
   output: 'export',
-  /* Set basePath for deployment to neurofuzzy.github.io/sfx-generator/ */
-  /* basePath: '/sfx-generator', */
+  /* 
+     Dynamically set basePath: 
+     - On GitHub Actions (deployment), use '/sfx-generator'
+     - Locally or in Studio, use '' (root)
+  */
+  basePath: process.env.GITHUB_ACTIONS === 'true' ? '/sfx-generator' : '',
   /* Images must be unoptimized for static hosting */
   images: {
     unoptimized: true,
