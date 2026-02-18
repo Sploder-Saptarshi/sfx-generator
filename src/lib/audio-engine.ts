@@ -196,6 +196,19 @@ class AudioEngine {
     filter.frequency.setValueAtTime(cutoffFreq, now);
     filter.Q.setValueAtTime(params.filterResonance, now);
 
+    // Filter LFO (Wah-Wah / Pulse)
+    if (params.lfoAmount > 0) {
+      const lfo = this.ctx.createOscillator();
+      const lfoGain = this.ctx.createGain();
+      lfo.frequency.value = params.lfoRate;
+      lfoGain.gain.value = params.lfoAmount * 5000; // Modulate up to 5kHz
+      lfo.connect(lfoGain);
+      lfoGain.connect(filter.frequency);
+      lfo.start(now);
+      const totalDuration = (params.sequenceSteps * (60 / params.sequenceBpm)) + params.attack + params.decay + 5;
+      lfo.stop(now + totalDuration);
+    }
+
     const combSum = this.ctx.createGain();
     const combDelay = this.ctx.createDelay(0.1);
     const combFeedback = this.ctx.createGain();
@@ -226,7 +239,7 @@ class AudioEngine {
       const delay = this.ctx.createDelay(2.0);
       delay.delayTime.setValueAtTime(params.echoDelay, now);
       const feedback = this.ctx.createGain();
-      feedback.gain.setValueAtTime(0.8, now); // Increased feedback for more repeats
+      feedback.gain.setValueAtTime(0.8, now);
       filter.connect(delay);
       delay.connect(feedback);
       feedback.connect(delay);
@@ -271,6 +284,17 @@ class AudioEngine {
     const cutoffFreq = params.filterCutoff === 0 ? 20000 : Math.max(20, params.filterCutoff);
     filter.frequency.setValueAtTime(cutoffFreq, now);
     filter.Q.setValueAtTime(params.filterResonance, now);
+
+    if (params.lfoAmount > 0) {
+      const lfo = offlineCtx.createOscillator();
+      const lfoGain = offlineCtx.createGain();
+      lfo.frequency.value = params.lfoRate;
+      lfoGain.gain.value = params.lfoAmount * 5000;
+      lfo.connect(lfoGain);
+      lfoGain.connect(filter.frequency);
+      lfo.start(now);
+      lfo.stop(now + totalDuration);
+    }
     
     const combSum = offlineCtx.createGain();
     const combDelay = offlineCtx.createDelay(0.1);

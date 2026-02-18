@@ -26,6 +26,8 @@ const GenerateSoundEffectFromDescriptionOutputSchema = z.object({
   noiseAmount: z.number().min(0).max(1),
   noiseType: z.enum(['white', 'pink', 'brown', 'velvet']),
   noiseModulation: z.number().min(0).max(1),
+  lfoAmount: z.number().min(0).max(1).describe('Amount of filter modulation (wah effect).'),
+  lfoRate: z.number().min(0.1).max(20).describe('Rate of filter modulation.'),
   filterCutoff: z.number().min(0).max(10000),
   filterResonance: z.number().min(0).max(20),
   combAmount: z.number().min(0).max(0.95),
@@ -52,6 +54,7 @@ Description: {{{this}}}
 Guidelines:
 - "frequencyDrift": Use negative values (e.g., -12 to -24) for lasers, blasters, and "pew" sounds. Use positive values for "rising" or "swelling" pitch.
 - "sequenceSteps": Use 2-4 for sounds like "coin pickup" (ca-ching), "level up" (arpeggio), or "failed" (downward notes). Use 1 for single hits.
+- "lfoAmount" & "lfoRate": Use for "pulsating," "wobbling," "wah-wah," or rhythmic filter effects.
 - "envelopeShape": 
     - "piano": Standard decay.
     - "strings": Slow, fading.

@@ -4,7 +4,7 @@ import { SoundParams, WaveformType, NoiseType, EnvelopeShape } from "@/types/aud
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { Waves, Activity, Radio, Wind, Volume2, Filter, ListMusic, Plus, Minus } from "lucide-react";
+import { Waves, Activity, Radio, Wind, Volume2, Filter, ListMusic, Plus, Minus, Zap } from "lucide-react";
 import PresetsList from "./presets-list";
 
 interface SoundControlsProps {
@@ -172,7 +172,7 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
         </div>
       </div>
 
-      {/* Noise Section */}
+      {/* Noise & Mod (LFO) */}
       <div className="space-y-6 p-4 glass-panel rounded-2xl border-accent/20">
         <div className="flex items-center gap-2 mb-2">
           <Volume2 className="w-4 h-4 text-accent" />
@@ -215,6 +215,38 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
                 {type}
               </Button>
             ))}
+          </div>
+
+          <div className="space-y-4 pt-4 border-t border-white/5">
+            <div className="flex items-center gap-2">
+              <Zap className="w-3.5 h-3.5 text-accent" />
+              <Label className="text-[10px] uppercase font-bold text-muted-foreground">Filter LFO</Label>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-[10px]">
+                <Label>Depth</Label>
+                <span className="text-muted-foreground">{(params.lfoAmount * 100).toFixed(0)}%</span>
+              </div>
+              <Slider
+                value={[params.lfoAmount]}
+                max={1}
+                step={0.01}
+                onValueChange={([val]) => updateParam("lfoAmount", val)}
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-[10px]">
+                <Label>Rate</Label>
+                <span className="text-muted-foreground">{params.lfoRate.toFixed(1)}Hz</span>
+              </div>
+              <Slider
+                value={[params.lfoRate]}
+                min={0.1}
+                max={20}
+                step={0.1}
+                onValueChange={([val]) => updateParam("lfoRate", val)}
+              />
+            </div>
           </div>
         </div>
       </div>

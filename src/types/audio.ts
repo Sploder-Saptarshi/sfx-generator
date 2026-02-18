@@ -18,6 +18,8 @@ export interface SoundParams {
   noiseAmount: number;
   noiseType: NoiseType;
   noiseModulation: number; // Jitters the oscillator frequency
+  lfoAmount: number;       // Modulates filter cutoff
+  lfoRate: number;         // LFO frequency in Hz
   filterType: FilterType;
   filterCutoff: number;    // Glues the sound together (0 = off, 1-10000 = Hz)
   filterResonance: number; // Adds that "sculpted" peak
@@ -49,6 +51,8 @@ export const defaultSoundParams: SoundParams = {
   noiseAmount: 0.1,
   noiseType: "white",
   noiseModulation: 0.2,
+  lfoAmount: 0,
+  lfoRate: 5,
   filterType: 'lowpass',
   filterCutoff: 0, // Default to 0 (off)
   filterResonance: 1,
@@ -157,6 +161,8 @@ export const GAME_PRESETS: SoundParams[] = [
     combDelay: 0.01,
     vibratoDepth: 0.8,
     vibratoRate: 8,
+    lfoAmount: 0.5,
+    lfoRate: 12,
   },
   {
     ...defaultSoundParams,
