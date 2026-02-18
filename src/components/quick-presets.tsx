@@ -3,13 +3,21 @@
 import { GAME_PRESETS, SoundParams } from "@/types/audio";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Zap, ArrowUp, Bomb, Coins, Repeat, Target, Star, Skull } from "lucide-react";
+import { Zap, ArrowUp, Bomb, Coins, Repeat, Target, Star, Skull, Drum, Speaker, Keyboard, Waves, Music, Disc } from "lucide-react";
 
 interface QuickPresetsProps {
   onSelect: (params: SoundParams) => void;
 }
 
 const presetIcons: Record<string, any> = {
+  // Musical Instruments
+  "Deep Kick": Drum,
+  "Snare": Music,
+  "Cymbal": Disc,
+  "Acid Bass": Speaker,
+  "Soft Piano": Keyboard,
+  "Ethereal Pad": Waves,
+  // Game FX
   "Classic Laser": Zap,
   "8-Bit Jump": ArrowUp,
   "Mega Explosion": Bomb,
@@ -26,10 +34,10 @@ export default function QuickPresets({ onSelect }: QuickPresetsProps) {
       <ScrollArea className="w-full whitespace-nowrap">
         <div className="flex w-max space-x-3 px-4">
           <div className="flex items-center gap-2 mr-4 text-xs font-bold uppercase tracking-widest text-muted-foreground/50 select-none">
-            Game FX <span className="text-[10px]">Quick Bank</span>
+            Preset <span className="text-accent">Quick Bank</span>
           </div>
           {GAME_PRESETS.map((preset) => {
-            const Icon = presetIcons[preset.name] || Zap;
+            const Icon = presetIcons[preset.name] || Music;
             return (
               <Button
                 key={preset.name}
