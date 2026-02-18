@@ -154,7 +154,7 @@ class AudioEngine {
     }
 
     const env = this.ctx.createGain();
-    env.gain.setValueAtTime(0, now);
+    env.gain.setValueAtTime(0.0001, now);
     
     const peakLevel = 0.6 / (params.waveformPairs.length || 1);
     
@@ -165,8 +165,9 @@ class AudioEngine {
       env.gain.linearRampToValueAtTime(peakLevel, now + params.attack);
       env.gain.linearRampToValueAtTime(0, now + params.attack + params.decay);
     } else if (params.envelopeShape === 'percussive') {
-      env.gain.setTargetAtTime(peakLevel, now, 0.005);
-      env.gain.exponentialRampToValueAtTime(0.001, now + 0.005 + params.decay);
+      // Snappy impact: instant attack, exponential decay
+      env.gain.exponentialRampToValueAtTime(peakLevel, now + 0.005);
+      env.gain.exponentialRampToValueAtTime(0.0001, now + 0.005 + params.decay);
     } else if (params.envelopeShape === 'reverse') {
       env.gain.linearRampToValueAtTime(peakLevel, now + params.attack);
       env.gain.linearRampToValueAtTime(0.001, now + params.attack + 0.01); // Sharp cut
@@ -278,7 +279,7 @@ class AudioEngine {
     }
 
     const env = offlineCtx.createGain();
-    env.gain.setValueAtTime(0, now);
+    env.gain.setValueAtTime(0.0001, now);
     const peakLevel = 0.6 / (params.waveformPairs.length || 1);
 
     if (params.envelopeShape === 'piano') {
@@ -288,8 +289,8 @@ class AudioEngine {
       env.gain.linearRampToValueAtTime(peakLevel, now + params.attack);
       env.gain.linearRampToValueAtTime(0, now + params.attack + params.decay);
     } else if (params.envelopeShape === 'percussive') {
-      env.gain.setTargetAtTime(peakLevel, now, 0.005);
-      env.gain.exponentialRampToValueAtTime(0.001, now + 0.005 + params.decay);
+      env.gain.exponentialRampToValueAtTime(peakLevel, now + 0.005);
+      env.gain.exponentialRampToValueAtTime(0.0001, now + 0.005 + params.decay);
     } else if (params.envelopeShape === 'reverse') {
       env.gain.linearRampToValueAtTime(peakLevel, now + params.attack);
       env.gain.linearRampToValueAtTime(0.001, now + params.attack + 0.01);
