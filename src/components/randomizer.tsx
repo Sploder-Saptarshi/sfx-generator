@@ -14,16 +14,22 @@ interface RandomizerProps {
 export default function Randomizer({ onRandomize }: RandomizerProps) {
   const [seed, setSeed] = useState<number>(() => Math.floor(Math.random() * 999999));
 
-  const handleUpdateFromSeed = (newSeed: number) => {
-    setSeed(newSeed);
+  const applySeed = (targetSeed: number) => {
     // Use the core engine's seeding logic to generate params
-    const randomParams = audioEngine.generateParamsFromSeed(newSeed);
+    const randomParams = audioEngine.generateParamsFromSeed(targetSeed);
     onRandomize(randomParams);
   };
 
   const handleRandomize = () => {
     const newSeed = Math.floor(Math.random() * 999999);
-    handleUpdateFromSeed(newSeed);
+    setSeed(newSeed);
+    applySeed(newSeed);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      applySeed(seed);
+    }
   };
 
   return (
@@ -43,11 +49,13 @@ export default function Randomizer({ onRandomize }: RandomizerProps) {
               onChange={(e) => {
                 const val = parseInt(e.target.value);
                 if (!isNaN(val)) {
-                  handleUpdateFromSeed(val);
+                  setSeed(val);
                 } else if (e.target.value === "") {
                   setSeed(0);
                 }
               }}
+              onKeyDown={handleKeyDown}
+              placeholder="Type seed and hit Enter..."
               className="pl-12 h-10 bg-white/5 border-white/10 rounded-xl font-mono text-sm focus:ring-accent/50"
             />
           </div>
