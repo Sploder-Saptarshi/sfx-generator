@@ -18,13 +18,13 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
   };
 
   const updateSequenceOffset = (index: number, val: number) => {
-    const newOffsets = [...params.sequenceOffsets];
+    const newOffsets = [...(params.sequenceOffsets || [0, 0, 0, 0])];
     newOffsets[index] = val;
     updateParam("sequenceOffsets", newOffsets);
   };
 
   const toggleWaveform = (wf: WaveformType) => {
-    const current = params.waveformPairs;
+    const current = params.waveformPairs || ["sine"];
     if (current.includes(wf)) {
       if (current.length > 1) {
         updateParam("waveformPairs", current.filter((w) => w !== wf));
@@ -50,7 +50,7 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
           {(["sine", "square", "sawtooth", "triangle"] as WaveformType[]).map((wf) => (
             <Button
               key={wf}
-              variant={params.waveformPairs.includes(wf) ? "default" : "outline"}
+              variant={(params.waveformPairs || []).includes(wf) ? "default" : "outline"}
               size="sm"
               className="capitalize flex-1 min-w-[70px]"
               onClick={() => toggleWaveform(wf)}
@@ -64,10 +64,10 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
               <Label>Base Freq</Label>
-              <span className="text-muted-foreground">{params.baseFrequency.toFixed(0)} Hz</span>
+              <span className="text-muted-foreground">{(params.baseFrequency ?? 440).toFixed(0)} Hz</span>
             </div>
             <Slider
-              value={[params.baseFrequency]}
+              value={[params.baseFrequency ?? 440]}
               min={20}
               max={2000}
               step={1}
@@ -77,10 +77,10 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
               <Label>Harmony Offset</Label>
-              <span className="text-muted-foreground">{(params.harmony * 100).toFixed(0)}%</span>
+              <span className="text-muted-foreground">{((params.harmony ?? 0) * 100).toFixed(0)}%</span>
             </div>
             <Slider
-              value={[params.harmony]}
+              value={[params.harmony ?? 0]}
               min={0}
               max={1}
               step={0.01}
@@ -90,10 +90,10 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
               <Label>Freq Drift (Slide)</Label>
-              <span className="text-muted-foreground">{params.frequencyDrift > 0 ? '+' : ''}{params.frequencyDrift} semi</span>
+              <span className="text-muted-foreground">{(params.frequencyDrift ?? 0) > 0 ? '+' : ''}{params.frequencyDrift ?? 0} semi</span>
             </div>
             <Slider
-              value={[params.frequencyDrift]}
+              value={[params.frequencyDrift ?? 0]}
               min={-24}
               max={24}
               step={1}
@@ -115,7 +115,7 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
               <Button
                 key={step}
                 size="icon"
-                variant={params.sequenceSteps === step ? "default" : "ghost"}
+                variant={(params.sequenceSteps ?? 1) === step ? "default" : "ghost"}
                 className="h-6 w-6 text-[10px]"
                 onClick={() => updateParam("sequenceSteps", step)}
               >
@@ -126,43 +126,47 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
         </div>
         <div className="space-y-5">
           <div className="grid grid-cols-4 gap-2">
-            {[0, 1, 2, 3].map((i) => (
-              <div key={i} className={`flex flex-col items-center gap-2 ${i >= params.sequenceSteps ? 'opacity-20 pointer-events-none' : ''}`}>
-                <Button
-                  size="icon"
-                  variant="outline"
-                  className="h-7 w-7 rounded-full bg-white/5 border-white/10 hover:bg-primary/20"
-                  onClick={() => updateSequenceOffset(i, Math.min(12, params.sequenceOffsets[i] + 1))}
-                >
-                  <Plus className="w-3 h-3" />
-                </Button>
-                <div className="h-24 w-full bg-white/5 rounded-lg flex flex-col justify-end p-1 relative overflow-hidden border border-white/5">
-                   <div 
-                    className="w-full bg-primary/40 rounded-sm transition-all" 
-                    style={{ height: `${((params.sequenceOffsets[i] + 12) / 24) * 100}%` }} 
-                   />
-                   <span className="absolute inset-0 flex items-center justify-center text-xs font-bold pointer-events-none">
-                    {params.sequenceOffsets[i] > 0 ? '+' : ''}{params.sequenceOffsets[i]}
-                   </span>
+            {[0, 1, 2, 3].map((i) => {
+              const sequenceOffsets = params.sequenceOffsets || [0, 0, 0, 0];
+              const offset = sequenceOffsets[i] ?? 0;
+              return (
+                <div key={i} className={`flex flex-col items-center gap-2 ${i >= (params.sequenceSteps ?? 1) ? 'opacity-20 pointer-events-none' : ''}`}>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="h-7 w-7 rounded-full bg-white/5 border-white/10 hover:bg-primary/20"
+                    onClick={() => updateSequenceOffset(i, Math.min(12, offset + 1))}
+                  >
+                    <Plus className="w-3 h-3" />
+                  </Button>
+                  <div className="h-24 w-full bg-white/5 rounded-lg flex flex-col justify-end p-1 relative overflow-hidden border border-white/5">
+                    <div 
+                      className="w-full bg-primary/40 rounded-sm transition-all" 
+                      style={{ height: `${((offset + 12) / 24) * 100}%` }} 
+                    />
+                    <span className="absolute inset-0 flex items-center justify-center text-xs font-bold pointer-events-none">
+                      {offset > 0 ? '+' : ''}{offset}
+                    </span>
+                  </div>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="h-7 w-7 rounded-full bg-white/5 border-white/10 hover:bg-primary/20"
+                    onClick={() => updateSequenceOffset(i, Math.max(-12, offset - 1))}
+                  >
+                    <Minus className="w-3 h-3" />
+                  </Button>
                 </div>
-                <Button
-                  size="icon"
-                  variant="outline"
-                  className="h-7 w-7 rounded-full bg-white/5 border-white/10 hover:bg-primary/20"
-                  onClick={() => updateSequenceOffset(i, Math.max(-12, params.sequenceOffsets[i] - 1))}
-                >
-                  <Minus className="w-3 h-3" />
-                </Button>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <div className="space-y-2 pt-2 border-t border-white/5">
             <div className="flex justify-between text-xs">
               <Label>Speed (BPM)</Label>
-              <span className="text-muted-foreground">{params.sequenceBpm}</span>
+              <span className="text-muted-foreground">{params.sequenceBpm ?? 120}</span>
             </div>
             <Slider
-              value={[params.sequenceBpm]}
+              value={[params.sequenceBpm ?? 120]}
               min={60}
               max={1200}
               step={10}
@@ -182,10 +186,10 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
               <Label>Additive Layer</Label>
-              <span className="text-muted-foreground">{(params.noiseAmount * 100).toFixed(0)}%</span>
+              <span className="text-muted-foreground">{((params.noiseAmount ?? 0) * 100).toFixed(0)}%</span>
             </div>
             <Slider
-              value={[params.noiseAmount]}
+              value={[params.noiseAmount ?? 0]}
               max={1}
               step={0.01}
               onValueChange={([val]) => updateParam("noiseAmount", val)}
@@ -194,10 +198,10 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
               <Label>Frequency Jitter</Label>
-              <span className="text-muted-foreground">{(params.noiseModulation * 100).toFixed(0)}%</span>
+              <span className="text-muted-foreground">{((params.noiseModulation ?? 0) * 100).toFixed(0)}%</span>
             </div>
             <Slider
-              value={[params.noiseModulation]}
+              value={[params.noiseModulation ?? 0]}
               max={1}
               step={0.01}
               onValueChange={([val]) => updateParam("noiseModulation", val)}
@@ -225,10 +229,10 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
             <div className="space-y-2">
               <div className="flex justify-between text-[10px]">
                 <Label>Depth</Label>
-                <span className="text-muted-foreground">{(params.lfoAmount * 100).toFixed(0)}%</span>
+                <span className="text-muted-foreground">{((params.lfoAmount ?? 0) * 100).toFixed(0)}%</span>
               </div>
               <Slider
-                value={[params.lfoAmount]}
+                value={[params.lfoAmount ?? 0]}
                 max={1}
                 step={0.01}
                 onValueChange={([val]) => updateParam("lfoAmount", val)}
@@ -237,10 +241,10 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
             <div className="space-y-2">
               <div className="flex justify-between text-[10px]">
                 <Label>Rate</Label>
-                <span className="text-muted-foreground">{params.lfoRate.toFixed(1)}Hz</span>
+                <span className="text-muted-foreground">{(params.lfoRate ?? 5).toFixed(1)}Hz</span>
               </div>
               <Slider
-                value={[params.lfoRate]}
+                value={[params.lfoRate ?? 5]}
                 min={0.1}
                 max={20}
                 step={0.1}
@@ -274,10 +278,10 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
           <div className="space-y-2 pt-2 border-t border-white/5">
             <div className="flex justify-between text-xs">
               <Label>Attack</Label>
-              <span className="text-muted-foreground">{params.attack.toFixed(2)}s</span>
+              <span className="text-muted-foreground">{(params.attack ?? 0.1).toFixed(2)}s</span>
             </div>
             <Slider
-              value={[params.attack]}
+              value={[params.attack ?? 0.1]}
               max={1}
               step={0.01}
               onValueChange={([val]) => updateParam("attack", val)}
@@ -286,10 +290,10 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
               <Label>Decay</Label>
-              <span className="text-muted-foreground">{params.decay.toFixed(2)}s</span>
+              <span className="text-muted-foreground">{(params.decay ?? 0.5).toFixed(2)}s</span>
             </div>
             <Slider
-              value={[params.decay]}
+              value={[params.decay ?? 0.5]}
               max={2}
               step={0.01}
               onValueChange={([val]) => updateParam("decay", val)}
@@ -308,10 +312,10 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
               <Label>Vibrato Depth</Label>
-              <span className="text-muted-foreground">{(params.vibratoDepth * 100).toFixed(0)}%</span>
+              <span className="text-muted-foreground">{((params.vibratoDepth ?? 0) * 100).toFixed(0)}%</span>
             </div>
             <Slider
-              value={[params.vibratoDepth]}
+              value={[params.vibratoDepth ?? 0]}
               max={1}
               step={0.01}
               onValueChange={([val]) => updateParam("vibratoDepth", val)}
@@ -320,10 +324,10 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
               <Label>Vibrato Rate</Label>
-              <span className="text-muted-foreground">{params.vibratoRate.toFixed(1)}Hz</span>
+              <span className="text-muted-foreground">{(params.vibratoRate ?? 5).toFixed(1)}Hz</span>
             </div>
             <Slider
-              value={[params.vibratoRate]}
+              value={[params.vibratoRate ?? 5]}
               min={0.1}
               max={20}
               step={0.1}
@@ -333,10 +337,10 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
           <div className="space-y-2 pt-2 border-t border-white/5">
             <div className="flex justify-between text-xs">
               <Label>Quantize (Steps/Octave)</Label>
-              <span className="text-muted-foreground">{params.quantize === 0 ? 'Smooth' : params.quantize}</span>
+              <span className="text-muted-foreground">{(params.quantize ?? 0) === 0 ? 'Smooth' : params.quantize}</span>
             </div>
             <Slider
-              value={[params.quantize]}
+              value={[params.quantize ?? 0]}
               min={0}
               max={48}
               step={1}
@@ -356,10 +360,10 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
               <Label>Low Pass Cutoff</Label>
-              <span className="text-muted-foreground">{params.filterCutoff === 0 ? 'OFF' : `${params.filterCutoff.toFixed(0)} Hz`}</span>
+              <span className="text-muted-foreground">{(params.filterCutoff ?? 0) === 0 ? 'OFF' : `${(params.filterCutoff ?? 0).toFixed(0)} Hz`}</span>
             </div>
             <Slider
-              value={[params.filterCutoff]}
+              value={[params.filterCutoff ?? 0]}
               min={0}
               max={10000}
               step={10}
@@ -369,10 +373,10 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
           <div className="space-y-2 pt-2 border-t border-white/5">
             <div className="flex justify-between text-xs">
               <Label>Comb Feedback</Label>
-              <span className="text-muted-foreground">{(params.combAmount * 100).toFixed(0)}%</span>
+              <span className="text-muted-foreground">{((params.combAmount ?? 0) * 100).toFixed(0)}%</span>
             </div>
             <Slider
-              value={[params.combAmount]}
+              value={[params.combAmount ?? 0]}
               min={0}
               max={0.95}
               step={0.01}
@@ -382,10 +386,10 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
               <Label>Comb Delay</Label>
-              <span className="text-muted-foreground">{(params.combDelay * 1000).toFixed(1)}ms</span>
+              <span className="text-muted-foreground">{((params.combDelay ?? 0.01) * 1000).toFixed(1)}ms</span>
             </div>
             <Slider
-              value={[params.combDelay]}
+              value={[params.combDelay ?? 0.01]}
               min={0.0001}
               max={0.05}
               step={0.0001}
@@ -395,10 +399,10 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
               <Label>Filter Resonance</Label>
-              <span className="text-muted-foreground">{params.filterResonance.toFixed(1)}</span>
+              <span className="text-muted-foreground">{(params.filterResonance ?? 1).toFixed(1)}</span>
             </div>
             <Slider
-              value={[params.filterResonance]}
+              value={[params.filterResonance ?? 1]}
               min={0}
               max={20}
               step={0.1}
@@ -418,10 +422,10 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
               <Label>Reverb</Label>
-              <span className="text-muted-foreground">{(params.reverbAmount * 100).toFixed(0)}%</span>
+              <span className="text-muted-foreground">{((params.reverbAmount ?? 0) * 100).toFixed(0)}%</span>
             </div>
             <Slider
-              value={[params.reverbAmount]}
+              value={[params.reverbAmount ?? 0]}
               max={1}
               step={0.01}
               onValueChange={([val]) => updateParam("reverbAmount", val)}
@@ -430,10 +434,10 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
               <Label>Echo Mix</Label>
-              <span className="text-muted-foreground">{(params.echoAmount * 100).toFixed(0)}%</span>
+              <span className="text-muted-foreground">{((params.echoAmount ?? 0) * 100).toFixed(0)}%</span>
             </div>
             <Slider
-              value={[params.echoAmount]}
+              value={[params.echoAmount ?? 0]}
               max={1}
               step={0.01}
               onValueChange={([val]) => updateParam("echoAmount", val)}
@@ -442,10 +446,10 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
               <Label>Echo Delay</Label>
-              <span className="text-muted-foreground">{params.echoDelay.toFixed(2)}s</span>
+              <span className="text-muted-foreground">{(params.echoDelay ?? 0.3).toFixed(2)}s</span>
             </div>
             <Slider
-              value={[params.echoDelay]}
+              value={[params.echoDelay ?? 0.3]}
               min={0}
               max={0.5}
               step={0.01}

@@ -29,9 +29,18 @@ export default function SoundSculptorApp() {
     audioEngine.play(overriddenParams || params);
   };
 
+  const handleUpdateParams = (newParams: Partial<SoundParams>) => {
+    setParams((prev) => ({
+      ...defaultSoundParams,
+      ...prev,
+      ...newParams,
+    }));
+  };
+
   const handleSelectPreset = (newParams: SoundParams) => {
-    setParams(newParams);
-    handlePlay(newParams);
+    const merged = { ...defaultSoundParams, ...newParams };
+    setParams(merged);
+    handlePlay(merged);
   };
 
   const handleExport = async () => {
@@ -76,7 +85,7 @@ export default function SoundSculptorApp() {
       <main className="space-y-6">
         <div className="flex flex-col gap-6">
           {/* AI Generator Box */}
-          <AiGenerator onGenerated={setParams} />
+          <AiGenerator onGenerated={handleSelectPreset} />
 
           {/* Monitor & Global Actions */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
@@ -109,7 +118,7 @@ export default function SoundSculptorApp() {
 
           {/* Detailed Controls & Library */}
           <div className="space-y-4">
-              <SoundControls params={params} setParams={setParams} />
+              <SoundControls params={params} setParams={handleUpdateParams} />
           </div>
         </div>
       </main>
