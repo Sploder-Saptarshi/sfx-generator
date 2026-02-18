@@ -3,8 +3,6 @@
  * @fileOverview A Genkit flow for generating sound effect parameters from a text description.
  *
  * - generateSoundEffectFromDescription - A function that generates sound parameters based on a text description.
- * - GenerateSoundEffectFromDescriptionInput - The input type for the generateSoundEffectFromDescription function.
- * - GenerateSoundEffectFromDescriptionOutput - The return type for the generateSoundEffectFromDescription function.
  */
 
 import {ai} from '@/ai/genkit';
@@ -12,94 +10,30 @@ import {z} from 'genkit';
 
 const GenerateSoundEffectFromDescriptionInputSchema = z
   .string()
-  .describe('A text description of the desired sound effect, e.g., "space gun laser" or "forest ambiance".');
+  .describe('A text description of the desired sound effect, e.g., "metallic tube ring" or "crunchy laser burst".');
 export type GenerateSoundEffectFromDescriptionInput = z.infer<typeof GenerateSoundEffectFromDescriptionInputSchema>;
 
 const GenerateSoundEffectFromDescriptionOutputSchema = z.object({
-  attack: z
-    .number()
-    .min(0)
-    .max(1)
-    .describe('The attack time of the sound in seconds (0 to 1).'),
-  decay: z
-    .number()
-    .min(0)
-    .max(2)
-    .describe('The decay time of the sound in seconds (0 to 2).'),
-  envelopeShape: z
-    .enum(['linear', 'exponential', 'reverse-exponential'])
-    .describe('The shape of the volume envelope. Exponential is punchier, linear is mechanical, reverse-exponential is swelling.'),
-  baseFrequency: z
-    .number()
-    .min(20)
-    .max(20000)
-    .describe('The fundamental frequency of the sound in Hz (20 to 20000).'),
-  harmony: z
-    .number()
-    .min(0)
-    .max(1)
-    .describe('Harmonic complexity (0 to 1).'),
-  quantize: z
-    .number()
-    .min(0)
-    .max(48)
-    .describe('Pitch quantization steps per octave. 0 for smooth, 12 for semitones, 2 for coarse steps.'),
-  timbre: z
-    .string()
-    .describe('Tonal quality description.'),
-  waveformPairs: z
-    .array(z.enum(['sine', 'square', 'sawtooth', 'triangle']))
-    .min(1)
-    .max(2)
-    .describe('Oscillator waveforms to blend.'),
-  noiseAmount: z
-    .number()
-    .min(0)
-    .max(1)
-    .describe('The volume of the additive noise layer (0 to 1).'),
-  noiseType: z
-    .enum(['white', 'pink', 'brown', 'velvet'])
-    .describe('The flavor of noise.'),
-  noiseModulation: z
-    .number()
-    .min(0)
-    .max(1)
-    .describe('How much the noise jitters/breaks the oscillator pitch (0 to 1). Higher for broken/debris sounds.'),
-  filterCutoff: z
-    .number()
-    .min(0)
-    .max(10000)
-    .describe('The low-pass filter cutoff frequency in Hz. 0 means the filter is OFF (bypassed).'),
-  filterResonance: z
-    .number()
-    .min(0)
-    .max(20)
-    .describe('The filter resonance/Q factor.'),
-  vibratoDepth: z
-    .number()
-    .min(0)
-    .max(1)
-    .describe('Vibrato intensity.'),
-  vibratoRate: z
-    .number()
-    .min(0)
-    .max(20)
-    .describe('Vibrato rate in Hz.'),
-  reverbAmount: z
-    .number()
-    .min(0)
-    .max(1)
-    .describe('Reverb mix.'),
-  echoAmount: z
-    .number()
-    .min(0)
-    .max(1)
-    .describe('Echo mix.'),
-  echoDelay: z
-    .number()
-    .min(0)
-    .max(0.5)
-    .describe('Echo delay time (0 to 0.5s).'),
+  attack: z.number().min(0).max(1),
+  decay: z.number().min(0).max(2),
+  envelopeShape: z.enum(['linear', 'exponential', 'reverse-exponential']),
+  baseFrequency: z.number().min(20).max(20000),
+  harmony: z.number().min(0).max(1),
+  quantize: z.number().min(0).max(48),
+  timbre: z.string(),
+  waveformPairs: z.array(z.enum(['sine', 'square', 'sawtooth', 'triangle'])).min(1).max(2),
+  noiseAmount: z.number().min(0).max(1),
+  noiseType: z.enum(['white', 'pink', 'brown', 'velvet']),
+  noiseModulation: z.number().min(0).max(1),
+  filterCutoff: z.number().min(0).max(10000),
+  filterResonance: z.number().min(0).max(20),
+  combAmount: z.number().min(0).max(0.95).describe('Amount of metallic resonance feedback.'),
+  combDelay: z.number().min(0.0001).max(0.05).describe('Delay time for the comb filter resonance.'),
+  vibratoDepth: z.number().min(0).max(1),
+  vibratoRate: z.number().min(0).max(20),
+  reverbAmount: z.number().min(0).max(1),
+  echoAmount: z.number().min(0).max(1),
+  echoDelay: z.number().min(0).max(0.5),
 });
 export type GenerateSoundEffectFromDescriptionOutput = z.infer<typeof GenerateSoundEffectFromDescriptionOutputSchema>;
 
@@ -107,16 +41,16 @@ const generateSoundEffectPrompt = ai.definePrompt({
   name: 'generateSoundEffectPrompt',
   input: {schema: GenerateSoundEffectFromDescriptionInputSchema},
   output: {schema: GenerateSoundEffectFromDescriptionOutputSchema},
-  prompt: `You are an expert sound designer. Interpret the following description and generate synthesis parameters.
+  prompt: `You are an expert sound designer. Interpret the description and generate synthesis parameters.
 
 Description: {{{this}}}
 
-Guidelines for Sculpting:
-- Use "quantize" for retro, chiptune, or stepped pitch effects. 12 is typical chromatic tuning.
-- Use "envelopeShape" = "exponential" for percussive or natural sounds, "linear" for robotic/synth sounds, "reverse-exponential" for swelling/rising sounds.
-- Use "noiseModulation" for broken, grit, or debris-like sounds.
-- Use "filterCutoff" to dampen sounds. 0 means bypass. For bright sounds use 0 or high values. For muffled sounds use 200-800.
-- For "lo-fi" sounds, use low filterCutoff and high noiseModulation.`,
+Guidelines:
+- Use "combAmount" and "combDelay" for metallic, industrial, robotic, or ringing textures. Higher combAmount (0.7-0.9) creates strong resonance.
+- Use "quantize" for retro, chiptune, or stepped pitch effects.
+- Use "envelopeShape" = "reverse-exponential" for swelling, rising, or sudden percussive hits.
+- Use "noiseModulation" for grit and debris.
+- Use "filterCutoff" to dampen sounds. 0 means bypass.`,
 });
 
 const generateSoundEffectFromDescriptionFlow = ai.defineFlow(

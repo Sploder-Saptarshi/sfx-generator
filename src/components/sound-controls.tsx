@@ -82,7 +82,7 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
         </div>
       </div>
 
-      {/* Simplified Sculpting Filter */}
+      {/* Simplified Sculpting Filter & Comb */}
       <div className="space-y-6 p-4 glass-panel rounded-2xl border-primary/20 bg-primary/5">
         <div className="flex items-center gap-2 mb-2">
           <Filter className="w-4 h-4 text-primary" />
@@ -101,11 +101,39 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
               step={10}
               onValueChange={([val]) => updateParam("filterCutoff", val)}
             />
-            <p className="text-[10px] text-muted-foreground italic">Set to 0 for no filtering.</p>
           </div>
+          
+          <div className="space-y-2 pt-2 border-t border-white/5">
+            <div className="flex justify-between text-xs">
+              <Label>Comb Feedback (Resonance)</Label>
+              <span className="text-muted-foreground">{(params.combAmount * 100).toFixed(0)}%</span>
+            </div>
+            <Slider
+              value={[params.combAmount]}
+              min={0}
+              max={0.95}
+              step={0.01}
+              onValueChange={([val]) => updateParam("combAmount", val)}
+            />
+          </div>
+
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
-              <Label>Resonance</Label>
+              <Label>Comb Delay (Frequency)</Label>
+              <span className="text-muted-foreground">{(params.combDelay * 1000).toFixed(1)}ms</span>
+            </div>
+            <Slider
+              value={[params.combDelay]}
+              min={0.0001}
+              max={0.05}
+              step={0.0001}
+              onValueChange={([val]) => updateParam("combDelay", val)}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <Label>Filter Resonance</Label>
               <span className="text-muted-foreground">{params.filterResonance.toFixed(1)}</span>
             </div>
             <Slider

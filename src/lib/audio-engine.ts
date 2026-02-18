@@ -10,13 +10,11 @@ class AudioEngine {
     if (!this.ctx) {
       this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
       
-      // Create a master chain: [Source] -> [Compressor] -> [Analyser] -> [Destination]
       this.compressor = this.ctx.createDynamicsCompressor();
       this.analyser = this.ctx.createAnalyser();
       
       this.analyser.fftSize = 2048;
       
-      // Configure Compressor for "normalization" and clipping protection
       this.compressor.threshold.setValueAtTime(-12, this.ctx.currentTime);
       this.compressor.knee.setValueAtTime(30, this.ctx.currentTime);
       this.compressor.ratio.setValueAtTime(12, this.ctx.currentTime);
@@ -107,19 +105,33 @@ class AudioEngine {
 
     const now = this.ctx.currentTime;
     
-    // Master Gain at 75% to prevent hard digital clipping
     const masterGain = this.ctx.createGain();
     masterGain.gain.setValueAtTime(0.75, now);
     
     const filter = this.ctx.createBiquadFilter();
     filter.type = 'lowpass';
-    // If cutoff is 0, we set it to 20kHz (effectively off)
     const cutoffFreq = params.filterCutoff === 0 ? 20000 : Math.max(20, params.filterCutoff);
     filter.frequency.setValueAtTime(cutoffFreq, now);
     filter.Q.setValueAtTime(params.filterResonance, now);
+
+    // Comb Filter implementation
+    const combSum = this.ctx.createGain();
+    const combDelay = this.ctx.createDelay(0.1);
+    const combFeedback = this.ctx.createGain();
     
-    // Connection: [Oscs/Noise] -> [Env] -> [MasterGain] -> [Filter] -> [Compressor]
-    masterGain.connect(filter);
+    combDelay.delayTime.setValueAtTime(Math.max(0.0001, params.combDelay), now);
+    combFeedback.gain.setValueAtTime(params.combAmount, now);
+
+    // Connect Comb
+    masterGain.connect(combSum);
+    combSum.connect(filter);
+    
+    if (params.combAmount > 0) {
+      combSum.connect(combDelay);
+      combDelay.connect(combFeedback);
+      combFeedback.connect(combSum);
+    }
+    
     filter.connect(this.compressor);
 
     // Effects
@@ -153,7 +165,6 @@ class AudioEngine {
       env.gain.exponentialRampToValueAtTime(peakLevel, now + Math.max(0.001, params.attack));
       env.gain.exponentialRampToValueAtTime(0.001, now + params.attack + params.decay);
     } else if (params.envelopeShape === 'reverse-exponential') {
-      // Concave attack (slow rise), convex decay (fast fall)
       env.gain.linearRampToValueAtTime(peakLevel, now + params.attack);
       env.gain.setTargetAtTime(0.001, now + params.attack, params.decay / 3);
     } else {
@@ -163,7 +174,6 @@ class AudioEngine {
     
     env.connect(masterGain);
 
-    // Noise Generation
     let noiseModNode: GainNode | null = null;
     if (params.noiseAmount > 0 || params.noiseModulation > 0) {
       const noiseSource = this.ctx.createBufferSource();
@@ -185,7 +195,6 @@ class AudioEngine {
       }
     }
 
-    // Oscillators
     params.waveformPairs.forEach((wf, index) => {
       let freq = params.baseFrequency * (index === 1 ? (1 + params.harmony) : 1);
       freq = this.quantizeFreq(freq, params.quantize);
@@ -214,11 +223,10 @@ class AudioEngine {
       osc.stop(now + params.attack + params.decay);
     });
 
-    // Cleanup
     setTimeout(() => {
         masterGain.disconnect();
         filter.disconnect();
-    }, (params.attack + params.decay + params.echoDelay * 10) * 1000 + 500);
+    }, (params.attack + params.decay + Math.max(params.echoDelay * 10, 1)) * 1000 + 500);
   }
 
   async exportToWav(params: SoundParams): Promise<Blob> {
@@ -242,7 +250,21 @@ class AudioEngine {
     filter.frequency.setValueAtTime(cutoffFreq, now);
     filter.Q.setValueAtTime(params.filterResonance, now);
     
-    masterGain.connect(filter);
+    // Comb for export
+    const combSum = offlineCtx.createGain();
+    const combDelay = offlineCtx.createDelay(0.1);
+    const combFeedback = offlineCtx.createGain();
+    combDelay.delayTime.setValueAtTime(Math.max(0.0001, params.combDelay), now);
+    combFeedback.gain.setValueAtTime(params.combAmount, now);
+
+    masterGain.connect(combSum);
+    combSum.connect(filter);
+    if (params.combAmount > 0) {
+      combSum.connect(combDelay);
+      combDelay.connect(combFeedback);
+      combFeedback.connect(combSum);
+    }
+
     filter.connect(compressor);
 
     if (params.echoAmount > 0) {

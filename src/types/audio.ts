@@ -20,6 +20,8 @@ export interface SoundParams {
   filterType: FilterType;
   filterCutoff: number;    // Glues the sound together (0 = off, 1-10000 = Hz)
   filterResonance: number; // Adds that "sculpted" peak
+  combAmount: number;      // Feedback for the comb filter (0 to 0.95)
+  combDelay: number;       // Delay time for the comb filter (0.0001 to 0.05s)
   vibratoDepth: number;
   vibratoRate: number;
   reverbAmount: number;
@@ -44,6 +46,8 @@ export const defaultSoundParams: SoundParams = {
   filterType: 'lowpass',
   filterCutoff: 0, // Default to 0 (off)
   filterResonance: 1,
+  combAmount: 0,
+  combDelay: 0.01,
   vibratoDepth: 0,
   vibratoRate: 5,
   reverbAmount: 0.2,
