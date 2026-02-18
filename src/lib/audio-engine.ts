@@ -400,14 +400,16 @@ class AudioEngine {
 
       this.playInternal(loopParams, 0, undefined, volumeMultiplier, masterGain);
       
+      // Schedule next trigger
       setTimeout(trigger, iterationDuration * 1000);
       
+      // Cleanup this gain node after the arpeggio and tail are done
       const cleanupTime = iterationDuration + params.attack + params.decay + 5;
       setTimeout(() => {
-        if (isPlaying) {
-          activeGains = activeGains.filter(g => g !== masterGain);
+        activeGains = activeGains.filter(g => g !== masterGain);
+        try {
           masterGain.disconnect();
-        }
+        } catch (e) {}
       }, cleanupTime * 1000);
     };
 
@@ -415,13 +417,10 @@ class AudioEngine {
 
     this.continuousLoops.set(id, {
       stop: () => {
+        // Simply set isPlaying to false.
+        // The current iteration triggered by playInternal will finish naturally 
+        // because the oscillators have their own stop() times and envelopes.
         isPlaying = false;
-        activeGains.forEach(g => {
-          try {
-            g.disconnect();
-          } catch (e) {}
-        });
-        activeGains = [];
         this.continuousLoops.delete(id);
       }
     });
