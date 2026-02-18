@@ -51,32 +51,47 @@ const GenerateSoundEffectFromDescriptionOutputSchema = z.object({
     .describe('The volume of the noise layer (0 to 1).'),
   noiseType: z
     .enum(['white', 'pink', 'brown', 'velvet'])
-    .describe('The flavor of noise. Use "white" for harsh, "pink" for natural/rain, "brown" for deep/rumble, "velvet" for clicks.'),
+    .describe('The flavor of noise.'),
+  noiseModulation: z
+    .number()
+    .min(0)
+    .max(1)
+    .describe('How much the noise jitters/breaks the oscillator pitch (0 to 1). Higher for broken/debris sounds.'),
+  filterCutoff: z
+    .number()
+    .min(20)
+    .max(10000)
+    .describe('The filter cutoff frequency in Hz.'),
+  filterResonance: z
+    .number()
+    .min(0)
+    .max(20)
+    .describe('The filter resonance/Q factor.'),
   vibratoDepth: z
     .number()
     .min(0)
     .max(1)
-    .describe('Vibrato intensity (0 to 1).'),
+    .describe('Vibrato intensity.'),
   vibratoRate: z
     .number()
     .min(0)
     .max(20)
-    .describe('Vibrato rate in Hz (0 to 20).'),
+    .describe('Vibrato rate in Hz.'),
   reverbAmount: z
     .number()
     .min(0)
     .max(1)
-    .describe('Reverb mix (0 to 1).'),
+    .describe('Reverb mix.'),
   echoAmount: z
     .number()
     .min(0)
     .max(1)
-    .describe('Echo mix (0 to 1).'),
+    .describe('Echo mix.'),
   echoDelay: z
     .number()
     .min(0.01)
     .max(2)
-    .describe('Echo delay time (0.01 to 2).'),
+    .describe('Echo delay time.'),
 });
 export type GenerateSoundEffectFromDescriptionOutput = z.infer<typeof GenerateSoundEffectFromDescriptionOutputSchema>;
 
@@ -88,11 +103,11 @@ const generateSoundEffectPrompt = ai.definePrompt({
 
 Description: {{{this}}}
 
-Guidelines:
-- If the sound is "noisy", "windy", or "mechanical", increase noiseAmount.
-- Choose noiseType: 'white' (static/harsh), 'pink' (soothing/rain), 'brown' (low rumble), 'velvet' (sparse sparks).
-- Set oscillators (waveformPairs) for tonal elements.
-- Use reverbAmount and echoAmount for space.`,
+Guidelines for Scuplting:
+- Use "noiseModulation" for broken, grit, or debris-like sounds. It modifies the oscillator pitch using the noise.
+- Use "filterCutoff" and "filterResonance" to glue noise and oscillators together.
+- For "lo-fi" or "dirty" sounds, use brown/white noise with high noiseModulation and low filterCutoff.
+- For "clean" sounds, keep noiseModulation low and filterCutoff high.`,
 });
 
 const generateSoundEffectFromDescriptionFlow = ai.defineFlow(

@@ -12,6 +12,9 @@ export interface SoundParams {
   waveformPairs: WaveformType[];
   noiseAmount: number;
   noiseType: NoiseType;
+  noiseModulation: number; // New: Jitters the oscillator frequency
+  filterCutoff: number;    // New: Glues the sound together
+  filterResonance: number; // New: Adds that "sculpted" peak
   vibratoDepth: number;
   vibratoRate: number;
   reverbAmount: number;
@@ -28,8 +31,11 @@ export const defaultSoundParams: SoundParams = {
   harmony: 0.5,
   timbre: "bright",
   waveformPairs: ["sine"],
-  noiseAmount: 0,
+  noiseAmount: 0.1,
   noiseType: "white",
+  noiseModulation: 0.2,
+  filterCutoff: 2000,
+  filterResonance: 5,
   vibratoDepth: 0,
   vibratoRate: 0,
   reverbAmount: 0.2,

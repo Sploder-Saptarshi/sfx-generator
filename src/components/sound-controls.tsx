@@ -4,7 +4,7 @@ import { SoundParams, WaveformType, NoiseType } from "@/types/audio";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { Waves, Zap, Activity, Radio, Music, Wind, Volume2 } from "lucide-react";
+import { Waves, Zap, Activity, Radio, Music, Wind, Volume2, Filter } from "lucide-react";
 
 interface SoundControlsProps {
   params: SoundParams;
@@ -33,7 +33,7 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-1">
-      {/* Waveforms */}
+      {/* Oscillators */}
       <div className="space-y-4 p-4 glass-panel rounded-2xl">
         <div className="flex items-center gap-2 mb-2">
           <Waves className="w-4 h-4 text-primary" />
@@ -53,16 +53,52 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
         </div>
       </div>
 
-      {/* Noise Section */}
-      <div className="space-y-6 p-4 glass-panel rounded-2xl border-accent/20">
+      {/* Scultping Filter */}
+      <div className="space-y-6 p-4 glass-panel rounded-2xl border-primary/20 bg-primary/5">
         <div className="flex items-center gap-2 mb-2">
-          <Volume2 className="w-4 h-4 text-accent" />
-          <h3 className="text-sm font-bold uppercase tracking-wider text-accent">Noise Layer</h3>
+          <Filter className="w-4 h-4 text-primary" />
+          <h3 className="text-sm font-bold uppercase tracking-wider text-primary">Sculptor (Filter)</h3>
         </div>
         <div className="space-y-4">
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
-              <Label>Amount</Label>
+              <Label>Cutoff</Label>
+              <span className="text-muted-foreground">{params.filterCutoff.toFixed(0)} Hz</span>
+            </div>
+            <Slider
+              value={[params.filterCutoff]}
+              min={20}
+              max={10000}
+              step={1}
+              onValueChange={([val]) => updateParam("filterCutoff", val)}
+            />
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <Label>Resonance</Label>
+              <span className="text-muted-foreground">{params.filterResonance.toFixed(1)}</span>
+            </div>
+            <Slider
+              value={[params.filterResonance]}
+              min={0}
+              max={20}
+              step={0.1}
+              onValueChange={([val]) => updateParam("filterResonance", val)}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Noise Section */}
+      <div className="space-y-6 p-4 glass-panel rounded-2xl border-accent/20">
+        <div className="flex items-center gap-2 mb-2">
+          <Volume2 className="w-4 h-4 text-accent" />
+          <h3 className="text-sm font-bold uppercase tracking-wider text-accent">Noise & Mod</h3>
+        </div>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <Label>Additive Layer</Label>
               <span className="text-muted-foreground">{(params.noiseAmount * 100).toFixed(0)}%</span>
             </div>
             <Slider
@@ -70,6 +106,18 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
               max={1}
               step={0.01}
               onValueChange={([val]) => updateParam("noiseAmount", val)}
+            />
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <Label>Frequency Jitter (Destructive)</Label>
+              <span className="text-muted-foreground">{(params.noiseModulation * 100).toFixed(0)}%</span>
+            </div>
+            <Slider
+              value={[params.noiseModulation]}
+              max={1}
+              step={0.01}
+              onValueChange={([val]) => updateParam("noiseModulation", val)}
             />
           </div>
           <div className="flex flex-wrap gap-1">
@@ -158,41 +206,7 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
         </div>
       </div>
 
-      {/* Vibrato */}
-      <div className="space-y-6 p-4 glass-panel rounded-2xl">
-        <div className="flex items-center gap-2 mb-2">
-          <Music className="w-4 h-4 text-accent" />
-          <h3 className="text-sm font-bold uppercase tracking-wider text-accent">Vibrato</h3>
-        </div>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs">
-              <Label>Rate</Label>
-              <span className="text-muted-foreground">{params.vibratoRate.toFixed(1)} Hz</span>
-            </div>
-            <Slider
-              value={[params.vibratoRate]}
-              max={20}
-              step={0.1}
-              onValueChange={([val]) => updateParam("vibratoRate", val)}
-            />
-          </div>
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs">
-              <Label>Depth</Label>
-              <span className="text-muted-foreground">{(params.vibratoDepth * 100).toFixed(0)}%</span>
-            </div>
-            <Slider
-              value={[params.vibratoDepth]}
-              max={1}
-              step={0.01}
-              onValueChange={([val]) => updateParam("vibratoDepth", val)}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Effects */}
+      {/* Space */}
       <div className="space-y-6 p-4 glass-panel rounded-2xl">
         <div className="flex items-center gap-2 mb-2">
           <Wind className="w-4 h-4 text-primary" />

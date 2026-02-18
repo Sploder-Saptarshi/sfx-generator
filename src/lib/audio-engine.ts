@@ -85,15 +85,23 @@ class AudioEngine {
 
     const now = this.ctx.currentTime;
     const masterGain = this.ctx.createGain();
-    masterGain.connect(this.analyser);
+    
+    // Main Scuplting Filter
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(params.filterCutoff, now);
+    filter.Q.setValueAtTime(params.filterResonance, now);
+    
+    masterGain.connect(filter);
+    filter.connect(this.analyser);
 
-    // Effects routing
+    // Routing and Effects
     if (params.reverbAmount > 0 && this.reverbBuffer) {
       const reverb = this.ctx.createConvolver();
       reverb.buffer = this.reverbBuffer;
       const reverbGain = this.ctx.createGain();
       reverbGain.gain.value = params.reverbAmount;
-      masterGain.connect(reverb);
+      filter.connect(reverb);
       reverb.connect(reverbGain);
       reverbGain.connect(this.analyser);
     }
@@ -103,7 +111,7 @@ class AudioEngine {
       delay.delayTime.value = params.echoDelay;
       const feedback = this.ctx.createGain();
       feedback.gain.value = params.echoAmount * 0.6;
-      masterGain.connect(delay);
+      filter.connect(delay);
       delay.connect(feedback);
       feedback.connect(delay);
       delay.connect(this.analyser);
@@ -116,16 +124,28 @@ class AudioEngine {
     env.connect(masterGain);
 
     // Noise layer
-    if (params.noiseAmount > 0) {
+    let noiseGainNode: GainNode | null = null;
+    if (params.noiseAmount > 0 || params.noiseModulation > 0) {
       const noiseSource = this.ctx.createBufferSource();
       noiseSource.buffer = this.createNoiseBuffer(params.noiseType);
       noiseSource.loop = true;
-      const noiseGain = this.ctx.createGain();
-      noiseGain.gain.value = params.noiseAmount;
-      noiseSource.connect(noiseGain);
-      noiseGain.connect(env);
+      
+      noiseGainNode = this.ctx.createGain();
+      noiseGainNode.gain.value = params.noiseAmount;
+      
+      noiseSource.connect(noiseGainNode);
+      noiseGainNode.connect(env); // Additive part
+      
       noiseSource.start(now);
-      noiseSource.stop(now + params.attack + params.decay);
+      noiseSource.stop(now + params.attack + params.decay + 1);
+
+      // Destructive/Modulative part: Use noise to jitter the oscillators
+      if (params.noiseModulation > 0) {
+        const modGain = this.ctx.createGain();
+        modGain.gain.value = params.noiseModulation * 500; // Large swing for "grit"
+        noiseSource.connect(modGain);
+        this.noiseModGain = modGain; // Temporary ref to connect to osc later
+      }
     }
 
     // Oscillators
@@ -135,6 +155,12 @@ class AudioEngine {
       osc.type = wf as OscillatorType;
       osc.frequency.setValueAtTime(freq, now);
 
+      // Noise Modulation (Destructive Jitter)
+      if (params.noiseModulation > 0 && (this as any).noiseModGain) {
+        (this as any).noiseModGain.connect(osc.frequency);
+      }
+
+      // Traditional Vibrato
       if (params.vibratoDepth > 0) {
         const lfo = this.ctx!.createOscillator();
         const lfoGain = this.ctx!.createGain();
@@ -153,6 +179,7 @@ class AudioEngine {
 
     setTimeout(() => {
         masterGain.disconnect();
+        filter.disconnect();
     }, (params.attack + params.decay + params.echoDelay * 4) * 1000 + 100);
   }
 
@@ -163,7 +190,13 @@ class AudioEngine {
 
     const now = 0;
     const masterGain = offlineCtx.createGain();
-    masterGain.connect(offlineCtx.destination);
+    const filter = offlineCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(params.filterCutoff, now);
+    filter.Q.setValueAtTime(params.filterResonance, now);
+    
+    masterGain.connect(filter);
+    filter.connect(offlineCtx.destination);
 
     const env = offlineCtx.createGain();
     env.gain.setValueAtTime(0, now);
@@ -171,8 +204,7 @@ class AudioEngine {
     env.gain.exponentialRampToValueAtTime(0.001, now + params.attack + params.decay);
     env.connect(masterGain);
 
-    if (params.noiseAmount > 0) {
-      // Offline noise creation uses same logic but different context
+    if (params.noiseAmount > 0 || params.noiseModulation > 0) {
       const noiseBuffer = this.createNoiseBuffer(params.noiseType);
       const noiseSource = offlineCtx.createBufferSource();
       noiseSource.buffer = noiseBuffer;
@@ -182,6 +214,13 @@ class AudioEngine {
       noiseSource.connect(noiseGain);
       noiseGain.connect(env);
       noiseSource.start(now);
+
+      if (params.noiseModulation > 0) {
+        const modGain = offlineCtx.createGain();
+        modGain.gain.value = params.noiseModulation * 500;
+        noiseSource.connect(modGain);
+        (offlineCtx as any).noiseModGain = modGain;
+      }
     }
 
     params.waveformPairs.forEach((wf, index) => {
@@ -189,6 +228,11 @@ class AudioEngine {
       const osc = offlineCtx.createOscillator();
       osc.type = wf as OscillatorType;
       osc.frequency.setValueAtTime(freq, now);
+      
+      if (params.noiseModulation > 0 && (offlineCtx as any).noiseModGain) {
+        (offlineCtx as any).noiseModGain.connect(osc.frequency);
+      }
+
       osc.connect(env);
       osc.start(now);
     });
