@@ -4,7 +4,7 @@
   <img src="img/hero.png" alt="Polyphonic Debris SoundSculptor Hero Image" width="100%">
 </p>
 
-A next-generation retro game sound effects generator powered by **Genkit AI** and the **Web Audio API**. Sculpt unique audio assets for your games using natural language prompts or detailed synthesis controls.
+A next-generation retro game sound effects generator and rhythmic EDM machine powered by **Genkit AI** and the **Web Audio API**. Sculpt unique audio assets using natural language prompts, seeded randomization, or detailed synthesis controls, then arrange them into multi-track loops.
 
 ## 🚀 [Try it Now: Live Demo](https://neurofuzzy.github.io/sfx-generator/)
 
@@ -12,19 +12,26 @@ A next-generation retro game sound effects generator powered by **Genkit AI** an
 
 ## 🚀 Features
 
-- **AI-Powered Sculpting**: Describe a sound (e.g., "metallic laser with a heavy echo") and let Gemini 2.5 Flash generate the synthesis parameters.
+### 🎨 Sound Sculptor
+- **AI-Powered Generation**: Describe a sound (e.g., "metallic laser with a heavy echo") and let Gemini 2.5 Flash generate the synthesis parameters.
+- **Entropy Engine**: A seeded PRNG randomizer. Generate unique sounds that are perfectly reproducible and shareable via seed numbers.
 - **Advanced Synthesis Engine**:
   - **Oscillators**: Multiple waveforms (Sine, Square, Sawtooth, Triangle) with harmony and frequency drift.
-  - **Distortion (Crunch)**: A non-linear waveshaper to add grit, harmonic saturation, and power to your waveforms.
-  - **Pitch Sequencer**: Create melodic progressions (up to 4 steps) for "ca-ching" coin sounds, power-ups, and more.
+  - **Distortion (Crunch)**: A non-linear waveshaper to add grit and harmonic saturation.
+  - **Arpeggiator**: Integrated pitch sequencer with "Once," "Repeat," and "Ping-Pong" playback modes.
   - **Sculptor Filters**: Low-pass cutoff with resonance and a metallic **Comb Filter** for industrial textures.
   - **Envelopes**: Intuitive presets (Piano, Strings, Percussive, Reverse) to define the "feel" of your sound.
-  - **Space & Mod**: Integrated Reverb, Echo, and a Volume LFO (Tremolo) for rhythmic pulsing.
-- **Game FX Quick Bank**: Instant access to classic game archetypes like "8-Bit Jump," "Mega Explosion," and "Teleport Warp."
-- **Library Management**:
-  - Save presets to browser local storage.
-  - Import and Export your entire library as JSON files.
-  - Export sculpted sounds directly to high-quality **.WAV** files.
+
+### 🎹 EDM Composer
+- **8-Track Sequencer**: Arrange your sculpted sounds into complex patterns.
+- **Melodic Control**: Per-step note selection (A-G) with global **Key** and **Scale** (Major, Minor, Natural) synchronization.
+- **Loop Library**: Save and load full compositions. Each loop captures a snapshot of the specific sounds used in its tracks.
+- **WAV Export**: Render your entire 8-track loop directly to a high-quality audio file.
+
+### 🌐 Sharing & Library
+- **URL Sharing**: All synthesis parameters are compressed into a compact URL string for instant sharing.
+- **Library Management**: Import/Export your entire preset library as JSON.
+- **Persistence**: All sounds and loops are saved to browser local storage.
 
 ## 🛠️ Tech Stack
 
