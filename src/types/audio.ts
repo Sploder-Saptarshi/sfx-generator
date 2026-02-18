@@ -2,6 +2,7 @@ export type WaveformType = 'sine' | 'square' | 'sawtooth' | 'triangle';
 export type NoiseType = 'white' | 'brown' | 'pink' | 'velvet';
 export type EnvelopeShape = 'piano' | 'strings' | 'percussive' | 'reverse';
 export type FilterType = 'lowpass' | 'highpass' | 'bandpass';
+export type PlaybackMode = 'once' | 'repeat' | 'ping-pong';
 
 export interface SoundParams {
   id?: string;
@@ -31,10 +32,12 @@ export interface SoundParams {
   reverbAmount: number;
   echoAmount: number;
   echoDelay: number;
-  // Sequencer
+  // Arpeggiator
   sequenceOffsets: number[]; // Semitone offsets (e.g. [0, 4, 7, 12])
   sequenceSteps: number;    // 1 to 4
   sequenceBpm: number;      // Speed of the progression
+  playbackMode: PlaybackMode;
+  loopCount: number;         // Number of times to repeat (for 'repeat' and 'ping-pong')
   createdAt?: number;
 }
 
@@ -56,7 +59,7 @@ export const defaultSoundParams: SoundParams = {
   lfoAmount: 0,
   lfoRate: 5,
   filterType: 'lowpass',
-  filterCutoff: 0, // Default to 0 (off)
+  filterCutoff: 0, 
   filterResonance: 1,
   combAmount: 0,
   combDelay: 0.01,
@@ -68,6 +71,8 @@ export const defaultSoundParams: SoundParams = {
   sequenceOffsets: [0, 0, 0, 0],
   sequenceSteps: 1,
   sequenceBpm: 120,
+  playbackMode: 'once',
+  loopCount: 1,
 };
 
 export const GAME_PRESETS: SoundParams[] = [
@@ -138,9 +143,9 @@ export const GAME_PRESETS: SoundParams[] = [
   {
     ...defaultSoundParams,
     name: "Shiny Coin",
-    baseFrequency: 1318, // E6
+    baseFrequency: 1318,
     sequenceSteps: 2,
-    sequenceOffsets: [0, 5, 0, 0], // E -> A (classic ca-ching)
+    sequenceOffsets: [0, 5, 0, 0],
     sequenceBpm: 600,
     waveformPairs: ["sine"],
     envelopeShape: "piano",
@@ -185,7 +190,7 @@ export const GAME_PRESETS: SoundParams[] = [
     name: "Game Over",
     baseFrequency: 220,
     sequenceSteps: 3,
-    sequenceOffsets: [0, -3, -7, 0], // Minor descent
+    sequenceOffsets: [0, -3, -7, 0],
     sequenceBpm: 180,
     waveformPairs: ["sawtooth"],
     envelopeShape: "strings",

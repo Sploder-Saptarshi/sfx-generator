@@ -49,7 +49,7 @@ class AudioEngine {
   }
 
   private makeDistortionCurve(amount: number) {
-    const k = amount * 400; // Increase the multiplier for more intense crunch
+    const k = amount * 400;
     const n_samples = 44100;
     const curve = new Float32Array(n_samples);
     const deg = Math.PI / 180;
@@ -133,7 +133,6 @@ class AudioEngine {
       env.gain.linearRampToValueAtTime(0.001, time + params.attack + 0.01);
     }
     
-    // Distorter (Waveshaper)
     const distorter = ctx.createWaveShaper();
     if (params.distortion > 0) {
       distorter.curve = this.makeDistortionCurve(params.distortion);
@@ -143,8 +142,6 @@ class AudioEngine {
     env.connect(distorter);
     distorter.connect(destination);
 
-    // Noise layer per note
-    let noiseModNode: GainNode | null = null;
     if (params.noiseAmount > 0 || params.noiseModulation > 0) {
       const noiseSource = ctx.createBufferSource();
       noiseSource.buffer = this.createNoiseBuffer(params.noiseType);
@@ -157,15 +154,8 @@ class AudioEngine {
       
       noiseSource.start(time);
       noiseSource.stop(time + duration + 0.1);
-
-      if (params.noiseModulation > 0) {
-        noiseModNode = ctx.createGain();
-        noiseModNode.gain.value = params.noiseModulation * 500;
-        noiseSource.connect(noiseModNode);
-      }
     }
 
-    // Oscillators per note
     params.waveformPairs.forEach((wf, index) => {
       let finalFreq = freq * (index === 1 ? (1 + params.harmony) : 1);
       finalFreq = this.quantizeFreq(finalFreq, params.quantize);
@@ -174,15 +164,10 @@ class AudioEngine {
       osc.type = wf as OscillatorType;
       osc.frequency.setValueAtTime(finalFreq, time);
 
-      // Apply Frequency Drift
       if (params.frequencyDrift !== 0) {
         const driftMultiplier = Math.pow(2, params.frequencyDrift / 12);
         const targetFreq = finalFreq * driftMultiplier;
         osc.frequency.exponentialRampToValueAtTime(Math.max(1, targetFreq), time + duration);
-      }
-
-      if (noiseModNode) {
-        noiseModNode.connect(osc.frequency);
       }
 
       if (params.vibratoDepth > 0) {
@@ -210,14 +195,12 @@ class AudioEngine {
     const masterGain = this.ctx.createGain();
     masterGain.gain.setValueAtTime(0.75, now);
 
-    // LFO for Volume (Tremolo / Pulsing)
     const lfoVca = this.ctx.createGain();
     lfoVca.gain.setValueAtTime(1.0, now);
     if (params.lfoAmount > 0) {
       const lfo = this.ctx.createOscillator();
       const lfoGain = this.ctx.createGain();
       lfo.frequency.value = params.lfoRate;
-      // Modulate between (1 - depth) and 1.
       lfoGain.gain.value = params.lfoAmount * 0.5;
       lfoVca.gain.value = 1.0 - (params.lfoAmount * 0.5);
       lfo.connect(lfoGain);
@@ -272,17 +255,31 @@ class AudioEngine {
       delay.connect(this.compressor);
     }
 
-    // Sequence execution
     const stepDuration = 60 / params.sequenceBpm;
-    for (let i = 0; i < params.sequenceSteps; i++) {
-      const offsetSemitones = params.sequenceOffsets[i];
-      const freqMultiplier = Math.pow(2, offsetSemitones / 12);
-      const freq = params.baseFrequency * freqMultiplier;
-      this.triggerNote(this.ctx, now + i * stepDuration, freq, params, masterGain);
+    let sequence: number[] = [];
+    const baseOffsets = params.sequenceOffsets.slice(0, params.sequenceSteps);
+
+    if (params.playbackMode === 'once') {
+      sequence = baseOffsets;
+    } else if (params.playbackMode === 'repeat') {
+      for (let r = 0; r < params.loopCount; r++) {
+        sequence.push(...baseOffsets);
+      }
+    } else if (params.playbackMode === 'ping-pong') {
+      const reverseOffsets = [...baseOffsets].reverse().slice(1, -1);
+      const cycle = [...baseOffsets, ...reverseOffsets];
+      for (let r = 0; r < params.loopCount; r++) {
+        sequence.push(...cycle);
+      }
     }
 
-    // Cleanup
-    const totalDuration = (params.sequenceSteps * stepDuration) + params.attack + params.decay + 5;
+    sequence.forEach((offsetSemitones, i) => {
+      const freqMultiplier = Math.pow(2, offsetSemitones / 12);
+      const freq = params.baseFrequency * freqMultiplier;
+      this.triggerNote(this.ctx!, now + i * stepDuration, freq, params, masterGain);
+    });
+
+    const totalDuration = (sequence.length * stepDuration) + params.attack + params.decay + 5;
     setTimeout(() => {
         masterGain.disconnect();
         filter.disconnect();
@@ -292,74 +289,34 @@ class AudioEngine {
   async exportToWav(params: SoundParams): Promise<Blob> {
     const sampleRate = 44100;
     const stepDuration = 60 / params.sequenceBpm;
-    const totalDuration = (params.sequenceSteps * stepDuration) + params.attack + params.decay + (params.echoAmount > 0 ? 3 : 1);
+    
+    let sequence: number[] = [];
+    const baseOffsets = params.sequenceOffsets.slice(0, params.sequenceSteps);
+    if (params.playbackMode === 'once') {
+      sequence = baseOffsets;
+    } else if (params.playbackMode === 'repeat') {
+      for (let r = 0; r < params.loopCount; r++) sequence.push(...baseOffsets);
+    } else if (params.playbackMode === 'ping-pong') {
+      const cycle = [...baseOffsets, ...([...baseOffsets].reverse().slice(1, -1))];
+      for (let r = 0; r < params.loopCount; r++) sequence.push(...cycle);
+    }
+
+    const totalDuration = (sequence.length * stepDuration) + params.attack + params.decay + (params.echoAmount > 0 ? 3 : 1);
     const offlineCtx = new OfflineAudioContext(1, Math.ceil(sampleRate * (totalDuration + 1)), sampleRate);
 
     const now = 0;
-    
     const compressor = offlineCtx.createDynamicsCompressor();
-    compressor.threshold.setValueAtTime(-12, now);
-    compressor.ratio.setValueAtTime(12, now);
     compressor.connect(offlineCtx.destination);
 
     const masterGain = offlineCtx.createGain();
     masterGain.gain.setValueAtTime(0.75, now);
+    masterGain.connect(compressor);
 
-    const lfoVca = offlineCtx.createGain();
-    lfoVca.gain.setValueAtTime(1.0, now);
-    if (params.lfoAmount > 0) {
-      const lfo = offlineCtx.createOscillator();
-      const lfoGain = offlineCtx.createGain();
-      lfo.frequency.value = params.lfoRate;
-      lfoGain.gain.value = params.lfoAmount * 0.5;
-      lfoVca.gain.value = 1.0 - (params.lfoAmount * 0.5);
-      lfo.connect(lfoGain);
-      lfoGain.connect(lfoVca.gain);
-      lfo.start(now);
-      lfo.stop(now + totalDuration);
-    }
-    
-    const filter = offlineCtx.createBiquadFilter();
-    filter.type = 'lowpass';
-    const cutoffFreq = params.filterCutoff === 0 ? 20000 : Math.max(20, params.filterCutoff);
-    filter.frequency.setValueAtTime(cutoffFreq, now);
-    filter.Q.setValueAtTime(params.filterResonance, now);
-    
-    const combSum = offlineCtx.createGain();
-    const combDelay = offlineCtx.createDelay(0.1);
-    const combFeedback = offlineCtx.createGain();
-    combDelay.delayTime.setValueAtTime(Math.max(0.0001, params.combDelay), now);
-    combFeedback.gain.setValueAtTime(params.combAmount, now);
-
-    masterGain.connect(lfoVca);
-    lfoVca.connect(combSum);
-    combSum.connect(filter);
-    
-    if (params.combAmount > 0) {
-      combSum.connect(combDelay);
-      combDelay.connect(combFeedback);
-      combFeedback.connect(combSum);
-    }
-
-    filter.connect(compressor);
-
-    if (params.echoAmount > 0) {
-      const delay = offlineCtx.createDelay(2.0);
-      delay.delayTime.setValueAtTime(params.echoDelay, now);
-      const feedback = offlineCtx.createGain();
-      feedback.gain.setValueAtTime(0.8, now);
-      filter.connect(delay);
-      delay.connect(feedback);
-      feedback.connect(delay);
-      delay.connect(compressor);
-    }
-
-    for (let i = 0; i < params.sequenceSteps; i++) {
-      const offsetSemitones = params.sequenceOffsets[i];
+    sequence.forEach((offsetSemitones, i) => {
       const freqMultiplier = Math.pow(2, offsetSemitones / 12);
       const freq = params.baseFrequency * freqMultiplier;
       this.triggerNote(offlineCtx, now + i * stepDuration, freq, params, masterGain);
-    }
+    });
 
     const renderedBuffer = await offlineCtx.startRendering();
     return this.audioBufferToWav(renderedBuffer);

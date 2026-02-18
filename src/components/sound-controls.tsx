@@ -1,10 +1,10 @@
 "use client";
 
-import { SoundParams, WaveformType, NoiseType, EnvelopeShape } from "@/types/audio";
+import { SoundParams, WaveformType, NoiseType, EnvelopeShape, PlaybackMode } from "@/types/audio";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { Waves, Activity, Radio, Wind, Volume2, Filter, ListMusic, Plus, Minus, Zap, Flame } from "lucide-react";
+import { Waves, Activity, Radio, Wind, Volume2, Filter, ListMusic, Plus, Minus, Zap, Flame, Infinity as InfinityIcon, Repeat1, PlayCircle } from "lucide-react";
 import PresetsList from "./presets-list";
 
 interface SoundControlsProps {
@@ -121,12 +121,12 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
         </div>
       </div>
 
-      {/* Pitch Sequencer */}
+      {/* Arpeggiator */}
       <div className="space-y-6 p-4 glass-panel rounded-2xl border-primary/20 bg-primary/5">
         <div className="flex items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
             <ListMusic className="w-4 h-4 text-primary" />
-            <h3 className="text-sm font-bold uppercase tracking-wider text-primary">Sequencer</h3>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-primary">Arpeggiator</h3>
           </div>
           <div className="flex items-center gap-1">
             {[1, 2, 3, 4].map((step) => (
@@ -178,18 +178,54 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
               );
             })}
           </div>
-          <div className="space-y-2 pt-2 border-t border-white/5">
-            <div className="flex justify-between text-xs">
-              <Label>Speed (BPM)</Label>
-              <span className="text-muted-foreground">{params.sequenceBpm ?? 120}</span>
+
+          <div className="space-y-4 pt-4 border-t border-white/5">
+            <div className="flex items-center justify-between gap-1">
+              {(["once", "repeat", "ping-pong"] as PlaybackMode[]).map((mode) => (
+                <Button
+                  key={mode}
+                  size="sm"
+                  variant={params.playbackMode === mode ? "secondary" : "ghost"}
+                  className="capitalize flex-1 text-[10px] h-7 gap-1"
+                  onClick={() => updateParam("playbackMode", mode)}
+                >
+                  {mode === 'once' && <PlayCircle className="w-3 h-3" />}
+                  {mode === 'repeat' && <Repeat1 className="w-3 h-3" />}
+                  {mode === 'ping-pong' && <InfinityIcon className="w-3 h-3" />}
+                  {mode}
+                </Button>
+              ))}
             </div>
-            <Slider
-              value={[params.sequenceBpm ?? 120]}
-              min={60}
-              max={1200}
-              step={10}
-              onValueChange={([val]) => updateParam("sequenceBpm", val)}
-            />
+
+            {params.playbackMode !== 'once' && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-[10px]">
+                  <Label>Cycles</Label>
+                  <span className="text-muted-foreground">{params.loopCount ?? 1}</span>
+                </div>
+                <Slider
+                  value={[params.loopCount ?? 1]}
+                  min={1}
+                  max={8}
+                  step={1}
+                  onValueChange={([val]) => updateParam("loopCount", val)}
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs">
+                <Label>Speed (BPM)</Label>
+                <span className="text-muted-foreground">{params.sequenceBpm ?? 120}</span>
+              </div>
+              <Slider
+                value={[params.sequenceBpm ?? 120]}
+                min={60}
+                max={1200}
+                step={10}
+                onValueChange={([val]) => updateParam("sequenceBpm", val)}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -211,18 +247,6 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
               max={1}
               step={0.01}
               onValueChange={([val]) => updateParam("noiseAmount", val)}
-            />
-          </div>
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs">
-              <Label>Frequency Jitter</Label>
-              <span className="text-muted-foreground">{((params.noiseModulation ?? 0) * 100).toFixed(0)}%</span>
-            </div>
-            <Slider
-              value={[params.noiseModulation ?? 0]}
-              max={1}
-              step={0.01}
-              onValueChange={([val]) => updateParam("noiseModulation", val)}
             />
           </div>
           <div className="flex flex-wrap gap-1">
