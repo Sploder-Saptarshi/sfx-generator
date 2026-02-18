@@ -10,6 +10,7 @@ const keyMap: Record<string, keyof SoundParams> = {
   es: "envelopeShape",
   bf: "baseFrequency",
   fd: "frequencyDrift",
+  vo: "volumeOffset",
   ha: "harmony",
   qu: "quantize",
   ti: "timbre",

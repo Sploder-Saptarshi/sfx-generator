@@ -12,6 +12,7 @@ export interface SoundParams {
   envelopeShape: EnvelopeShape;
   baseFrequency: number;
   frequencyDrift: number; // Semitone offset over time (-24 to 24)
+  volumeOffset: number;    // User-controlled volume (0.5 to 1.0)
   harmony: number;
   quantize: number; // 0 for continuous, >0 for steps per octave
   timbre: string;
@@ -71,6 +72,7 @@ export const defaultSoundParams: SoundParams = {
   envelopeShape: 'piano',
   baseFrequency: 440,
   frequencyDrift: 0,
+  volumeOffset: 1.0,
   harmony: 0.5,
   quantize: 0,
   timbre: "bright",

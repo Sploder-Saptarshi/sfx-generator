@@ -212,7 +212,8 @@ class AudioEngine {
     const baseFreq = frequencyOverride || params.baseFrequency;
     
     const masterGain = this.ctx.createGain();
-    masterGain.gain.setValueAtTime(0.75, now);
+    // Apply user volume offset
+    masterGain.gain.setValueAtTime(0.75 * (params.volumeOffset ?? 1.0), now);
 
     const lfoVca = this.ctx.createGain();
     lfoVca.gain.setValueAtTime(1.0, now);
@@ -377,7 +378,8 @@ class AudioEngine {
           const freq = NOTE_FREQUENCIES[noteName] || 440;
           
           const masterGain = offlineCtx.createGain();
-          masterGain.gain.value = 0.5;
+          // Apply user volume offset
+          masterGain.gain.value = 0.5 * (sound.volumeOffset ?? 1.0);
           masterGain.connect(compressor);
           this.triggerNote(offlineCtx, time, freq, sound, masterGain);
         }
@@ -411,7 +413,8 @@ class AudioEngine {
     compressor.connect(offlineCtx.destination);
 
     const masterGain = offlineCtx.createGain();
-    masterGain.gain.setValueAtTime(0.75, now);
+    // Apply user volume offset
+    masterGain.gain.setValueAtTime(0.75 * (params.volumeOffset ?? 1.0), now);
     masterGain.connect(compressor);
 
     sequence.forEach((offsetSemitones, i) => {

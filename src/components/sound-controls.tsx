@@ -119,6 +119,23 @@ export default function SoundControls({ params, setParams, onPresetsChange }: So
               onValueChange={([val]) => updateParam("frequencyDrift", val)}
             />
           </div>
+
+          <div className="space-y-2 pt-2 border-t border-white/5">
+            <div className="flex justify-between text-xs">
+              <div className="flex items-center gap-1.5">
+                <Volume2 className="w-3.5 h-3.5 text-primary" />
+                <Label>Volume Offset</Label>
+              </div>
+              <span className="text-muted-foreground">{((params.volumeOffset ?? 1.0) * 100).toFixed(0)}%</span>
+            </div>
+            <Slider
+              value={[params.volumeOffset ?? 1.0]}
+              min={0.5}
+              max={1.0}
+              step={0.01}
+              onValueChange={([val]) => updateParam("volumeOffset", val)}
+            />
+          </div>
         </div>
       </div>
 
