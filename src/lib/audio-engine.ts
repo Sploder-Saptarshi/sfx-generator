@@ -1,11 +1,20 @@
 import { SoundParams, WaveformType, NoiseType, CompositionState } from "@/types/audio";
 
+/**
+ * Standard frequency map for musical note playback.
+ */
 const NOTE_FREQUENCIES: Record<string, number> = {
   "C3": 130.81, "C#3": 138.59, "D3": 146.83, "D#3": 155.56, "E3": 164.81, "F3": 174.61, "F#3": 185.00, "G3": 196.00, "G#3": 207.65, "A3": 220.00, "A#3": 233.08, "B3": 246.94,
   "C4": 261.63, "C#4": 277.18, "D4": 293.66, "D#4": 311.13, "E4": 329.63, "F4": 349.23, "F#4": 369.99, "G4": 392.00, "G#4": 415.30, "A4": 440.00, "A#4": 466.16, "B4": 493.88,
   "C5": 523.25, "C#5": 554.37, "D5": 587.33, "D#5": 622.25, "E5": 659.25, "F5": 698.46, "F#5": 739.99, "G5": 783.99, "G#5": 830.61, "A5": 880.00, "A#5": 932.33, "B5": 987.77,
 };
 
+/**
+ * Core Procedural Synthesis Engine
+ * 
+ * Handles real-time Web Audio API scheduling, oscillator management, 
+ * and effect processing.
+ */
 class AudioEngine {
   private ctx: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
@@ -17,13 +26,19 @@ class AudioEngine {
 
   async init() {
     if (!this.ctx) {
-      this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      // Use standard AudioContext
+      const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
+      if (!AudioContextClass) {
+        console.error("Web Audio API not supported in this browser.");
+        return;
+      }
       
+      this.ctx = new AudioContextClass();
       this.compressor = this.ctx.createDynamicsCompressor();
       this.analyser = this.ctx.createAnalyser();
-      
       this.analyser.fftSize = 2048;
       
+      // Warm, punchy master compression settings
       this.compressor.threshold.setValueAtTime(-12, this.ctx.currentTime);
       this.compressor.knee.setValueAtTime(30, this.ctx.currentTime);
       this.compressor.ratio.setValueAtTime(12, this.ctx.currentTime);
@@ -35,13 +50,14 @@ class AudioEngine {
       
       await this.generateReverbBuffer();
     }
+    
     if (this.ctx.state === 'suspended') {
       await this.ctx.resume();
     }
   }
 
   setMasterVolume(val: number) {
-    this.masterVolume = val;
+    this.masterVolume = Math.max(0, Math.min(1.5, val));
   }
 
   getAnalyser() {
@@ -55,7 +71,8 @@ class AudioEngine {
     for (let channel = 0; channel < 2; channel++) {
       const data = buffer.getChannelData(channel);
       for (let i = 0; i < length; i++) {
-        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2);
+        // High-quality white noise decay for natural reverb feel
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2.5);
       }
     }
     this.reverbBuffer = buffer;
@@ -74,22 +91,21 @@ class AudioEngine {
   }
 
   private quantizeFreq(freq: number, steps: number): number {
-    if (steps === 0) return freq;
+    if (steps <= 0) return freq;
     const logFreq = Math.log2(freq / 440);
     const quantizedLogFreq = Math.round(logFreq * steps) / steps;
     return 440 * Math.pow(2, quantizedLogFreq);
   }
 
   private createNoiseBuffer(type: NoiseType): AudioBuffer {
-    const sampleRate = this.ctx!.sampleRate;
+    if (!this.ctx) throw new Error("Audio Context not initialized");
+    const sampleRate = this.ctx.sampleRate;
     const bufferSize = 2 * sampleRate;
-    const buffer = this.ctx!.createBuffer(1, bufferSize, sampleRate);
+    const buffer = this.ctx.createBuffer(1, bufferSize, sampleRate);
     const output = buffer.getChannelData(0);
 
     if (type === 'white') {
-      for (let i = 0; i < bufferSize; i++) {
-        output[i] = Math.random() * 2 - 1;
-      }
+      for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
     } else if (type === 'pink') {
       let b0, b1, b2, b3, b4, b5, b6;
       b0 = b1 = b2 = b3 = b4 = b5 = b6 = 0.0;
@@ -115,11 +131,7 @@ class AudioEngine {
       }
     } else if (type === 'velvet') {
       for (let i = 0; i < bufferSize; i++) {
-        if (Math.random() < 0.02) {
-          output[i] = Math.random() < 0.5 ? 1 : -1;
-        } else {
-          output[i] = 0;
-        }
+        output[i] = Math.random() < 0.02 ? (Math.random() < 0.5 ? 1 : -1) : 0;
       }
     }
     return buffer;
@@ -139,6 +151,7 @@ class AudioEngine {
     const peakLevel = (0.6 / (params.waveformPairs.length || 1)) * (1 + (params.distortion ?? 0) * 1.5) * gainScale;
     const duration = params.attack + params.decay;
     
+    // Envelope logic
     if (params.envelopeShape === 'piano') {
       env.gain.exponentialRampToValueAtTime(peakLevel, time + Math.max(0.001, params.attack));
       env.gain.exponentialRampToValueAtTime(0.001, time + duration);
@@ -162,21 +175,21 @@ class AudioEngine {
     env.connect(distorter);
     distorter.connect(destination);
 
+    // Noise layer
     if (params.noiseAmount > 0) {
       const noiseSource = ctx.createBufferSource();
       noiseSource.buffer = this.createNoiseBuffer(params.noiseType);
       noiseSource.loop = true;
-      
-      const additiveNoiseGain = ctx.createGain();
-      additiveNoiseGain.gain.value = params.noiseAmount * 0.3;
-      noiseSource.connect(additiveNoiseGain);
-      additiveNoiseGain.connect(env);
-      
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.value = params.noiseAmount * 0.3;
+      noiseSource.connect(noiseGain);
+      noiseGain.connect(env);
       noiseSource.start(time);
       noiseSource.stop(time + duration + 0.1);
       this.trackNode(noiseSource);
     }
 
+    // Oscillators
     params.waveformPairs.forEach((wf, index) => {
       let finalFreq = freq * (index === 1 ? (1 + params.harmony) : 1);
       finalFreq = this.quantizeFreq(finalFreq, params.quantize);
@@ -185,12 +198,13 @@ class AudioEngine {
       osc.type = wf as OscillatorType;
       osc.frequency.setValueAtTime(finalFreq, time);
 
+      // Pitch glide/slide
       if (params.frequencyDrift !== 0) {
         const driftMultiplier = Math.pow(2, params.frequencyDrift / 12);
-        const targetFreq = finalFreq * driftMultiplier;
-        osc.frequency.exponentialRampToValueAtTime(Math.max(1, targetFreq), time + duration);
+        osc.frequency.exponentialRampToValueAtTime(Math.max(1, finalFreq * driftMultiplier), time + duration);
       }
 
+      // Vibrato (Frequency Modulation)
       if (params.vibratoDepth > 0) {
         const lfo = ctx.createOscillator();
         const lfoGain = ctx.createGain();
@@ -217,9 +231,9 @@ class AudioEngine {
     const baseFreq = frequencyOverride || params.baseFrequency;
     
     const masterGain = this.ctx.createGain();
-    // Apply user master volume multiplied by local trigger volume
     masterGain.gain.setValueAtTime(0.75 * this.masterVolume * volumeMultiplier, now);
 
+    // Amplitude Modulation (LFO/Tremolo)
     const lfoVca = this.ctx.createGain();
     lfoVca.gain.setValueAtTime(1.0, now);
     if (params.lfoAmount > 0) {
@@ -231,11 +245,12 @@ class AudioEngine {
       lfo.connect(lfoGain);
       lfoGain.connect(lfoVca.gain);
       lfo.start(now);
-      const totalDuration = (params.sequenceSteps * (60 / params.sequenceBpm)) + params.attack + params.decay + 5;
-      lfo.stop(now + totalDuration);
+      const totalLen = (params.sequenceSteps * (60 / params.sequenceBpm)) + params.attack + params.decay + 5;
+      lfo.stop(now + totalLen);
       this.trackNode(lfo);
     }
     
+    // Filters & Space
     const filter = this.ctx.createBiquadFilter();
     filter.type = 'lowpass';
     const cutoffFreq = params.filterCutoff === 0 ? 20000 : Math.max(20, params.filterCutoff);
@@ -281,6 +296,7 @@ class AudioEngine {
       delay.connect(this.compressor);
     }
 
+    // Sequencer (Arpeggiator)
     const stepDuration = 60 / params.sequenceBpm;
     let sequence: number[] = [];
     const baseOffsets = params.sequenceOffsets.slice(0, params.sequenceSteps);
@@ -288,28 +304,22 @@ class AudioEngine {
     if (params.playbackMode === 'once') {
       sequence = baseOffsets;
     } else if (params.playbackMode === 'repeat') {
-      for (let r = 0; r < params.loopCount; r++) {
-        sequence.push(...baseOffsets);
-      }
+      for (let r = 0; r < params.loopCount; r++) sequence.push(...baseOffsets);
     } else if (params.playbackMode === 'ping-pong') {
-      const reverseOffsets = [...baseOffsets].reverse().slice(1, -1);
-      const cycle = [...baseOffsets, ...reverseOffsets];
-      for (let r = 0; r < params.loopCount; r++) {
-        sequence.push(...cycle);
-      }
+      const cycle = [...baseOffsets, ...([...baseOffsets].reverse().slice(1, -1))];
+      for (let r = 0; r < params.loopCount; r++) sequence.push(...cycle);
     }
 
-    sequence.forEach((offsetSemitones, i) => {
-      const freqMultiplier = Math.pow(2, offsetSemitones / 12);
-      const freq = baseFreq * freqMultiplier;
+    sequence.forEach((offset, i) => {
+      const freq = baseFreq * Math.pow(2, offset / 12);
       this.triggerNote(this.ctx!, now + i * stepDuration, freq, params, masterGain);
     });
 
-    const totalDuration = (sequence.length * stepDuration) + params.attack + params.decay + 5;
+    const cleanupTime = (sequence.length * stepDuration) + params.attack + params.decay + 5;
     setTimeout(() => {
-        masterGain.disconnect();
-        filter.disconnect();
-    }, totalDuration * 1000);
+      masterGain.disconnect();
+      filter.disconnect();
+    }, cleanupTime * 1000);
   }
 
   stopAll() {
@@ -318,9 +328,7 @@ class AudioEngine {
       try {
         node.stop();
         node.disconnect();
-      } catch (e) {
-        // Node might already be stopped
-      }
+      } catch (e) {}
     });
     this.activeNodes.clear();
   }
@@ -337,24 +345,21 @@ class AudioEngine {
     this.stopComposition();
 
     let currentStep = 0;
-    const stepDuration = 60 / composition.bpm / 4; // 16th notes
+    const stepDuration = 60 / composition.bpm / 4;
     
     const runStep = () => {
       if (!this.ctx) return;
-      const nextTime = this.ctx.currentTime + 0.1;
       onStep(currentStep);
 
       composition.tracks.forEach(track => {
         if (track.steps[currentStep] && track.soundId) {
           const sound = library.find(s => s.id === track.soundId);
           if (sound) {
-            const noteName = track.stepNotes[currentStep];
-            const freq = NOTE_FREQUENCIES[noteName] || 440;
-            this.play(sound, 0.1, freq);
+            const freq = NOTE_FREQUENCIES[track.stepNotes[currentStep]] || 440;
+            this.play(sound, 0.05, freq);
           }
         }
       });
-
       currentStep = (currentStep + 1) % 8;
     };
 
@@ -376,12 +381,10 @@ class AudioEngine {
       const sound = library.find(s => s.id === track.soundId);
       if (!sound) return;
 
-      track.steps.forEach((isActive, stepIdx) => {
+      track.steps.forEach((isActive, idx) => {
         if (isActive) {
-          const time = stepIdx * stepDuration;
-          const noteName = track.stepNotes[stepIdx];
-          const freq = NOTE_FREQUENCIES[noteName] || 440;
-          
+          const time = idx * stepDuration;
+          const freq = NOTE_FREQUENCIES[track.stepNotes[idx]] || 440;
           const masterGain = offlineCtx.createGain();
           masterGain.gain.value = 0.5 * this.masterVolume;
           masterGain.connect(compressor);
@@ -409,21 +412,19 @@ class AudioEngine {
       for (let r = 0; r < params.loopCount; r++) sequence.push(...cycle);
     }
 
-    const totalDuration = (sequence.length * stepDuration) + params.attack + params.decay + (params.echoAmount > 0 ? 3 : 1);
+    const totalDuration = (sequence.length * stepDuration) + params.attack + params.decay + 3;
     const offlineCtx = new OfflineAudioContext(1, Math.ceil(sampleRate * (totalDuration + 1)), sampleRate);
 
-    const now = 0;
     const compressor = offlineCtx.createDynamicsCompressor();
     compressor.connect(offlineCtx.destination);
 
     const masterGain = offlineCtx.createGain();
-    masterGain.gain.setValueAtTime(0.75 * this.masterVolume, now);
+    masterGain.gain.setValueAtTime(0.75 * this.masterVolume, 0);
     masterGain.connect(compressor);
 
-    sequence.forEach((offsetSemitones, i) => {
-      const freqMultiplier = Math.pow(2, offsetSemitones / 12);
-      const freq = params.baseFrequency * freqMultiplier;
-      this.triggerNote(offlineCtx, now + i * stepDuration, freq, params, masterGain);
+    sequence.forEach((offset, i) => {
+      const freq = params.baseFrequency * Math.pow(2, offset / 12);
+      this.triggerNote(offlineCtx, i * stepDuration, freq, params, masterGain);
     });
 
     const renderedBuffer = await offlineCtx.startRendering();
@@ -436,10 +437,7 @@ class AudioEngine {
     const bufferArr = new ArrayBuffer(length);
     const view = new DataView(bufferArr);
     const channels = [];
-    let i;
-    let sample;
-    let offset = 0;
-    let pos = 0;
+    let i, sample, offset = 0, pos = 0;
 
     const setUint16 = (data: number) => { view.setUint16(pos, data, true); pos += 2; };
     const setUint32 = (data: number) => { view.setUint32(pos, data, true); pos += 4; };
