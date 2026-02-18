@@ -4,7 +4,7 @@ import { SoundParams, WaveformType, NoiseType, EnvelopeShape } from "@/types/aud
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { Waves, Activity, Radio, Wind, Volume2, Filter, ListMusic } from "lucide-react";
+import { Waves, Activity, Radio, Wind, Volume2, Filter, ListMusic, Plus, Minus } from "lucide-react";
 
 interface SoundControlsProps {
   params: SoundParams;
@@ -114,24 +114,31 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
           <div className="grid grid-cols-4 gap-2">
             {[0, 1, 2, 3].map((i) => (
               <div key={i} className={`flex flex-col items-center gap-2 ${i >= params.sequenceSteps ? 'opacity-20 pointer-events-none' : ''}`}>
-                <div className="h-24 w-full bg-white/5 rounded-lg flex flex-col justify-end p-1 relative overflow-hidden">
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="h-7 w-7 rounded-full bg-white/5 border-white/10 hover:bg-primary/20"
+                  onClick={() => updateSequenceOffset(i, Math.min(12, params.sequenceOffsets[i] + 1))}
+                >
+                  <Plus className="w-3 h-3" />
+                </Button>
+                <div className="h-24 w-full bg-white/5 rounded-lg flex flex-col justify-end p-1 relative overflow-hidden border border-white/5">
                    <div 
                     className="w-full bg-primary/40 rounded-sm transition-all" 
                     style={{ height: `${((params.sequenceOffsets[i] + 12) / 24) * 100}%` }} 
                    />
-                   <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold pointer-events-none">
+                   <span className="absolute inset-0 flex items-center justify-center text-xs font-bold pointer-events-none">
                     {params.sequenceOffsets[i] > 0 ? '+' : ''}{params.sequenceOffsets[i]}
                    </span>
                 </div>
-                <Slider
-                  orientation="vertical"
-                  value={[params.sequenceOffsets[i]]}
-                  min={-12}
-                  max={12}
-                  step={1}
-                  onValueChange={([val]) => updateSequenceOffset(i, val)}
-                  className="h-24"
-                />
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="h-7 w-7 rounded-full bg-white/5 border-white/10 hover:bg-primary/20"
+                  onClick={() => updateSequenceOffset(i, Math.max(-12, params.sequenceOffsets[i] - 1))}
+                >
+                  <Minus className="w-3 h-3" />
+                </Button>
               </div>
             ))}
           </div>
