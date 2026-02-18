@@ -27,6 +27,10 @@ export interface SoundParams {
   reverbAmount: number;
   echoAmount: number;
   echoDelay: number;
+  // Sequencer
+  sequenceOffsets: number[]; // Semitone offsets (e.g. [0, 4, 7, 12])
+  sequenceSteps: number;    // 1 to 4
+  sequenceBpm: number;      // Speed of the progression
   createdAt?: number;
 }
 
@@ -53,6 +57,9 @@ export const defaultSoundParams: SoundParams = {
   reverbAmount: 0.2,
   echoAmount: 0,
   echoDelay: 0.3,
+  sequenceOffsets: [0, 0, 0, 0],
+  sequenceSteps: 1,
+  sequenceBpm: 120,
 };
 
 export const GAME_PRESETS: SoundParams[] = [
@@ -96,14 +103,14 @@ export const GAME_PRESETS: SoundParams[] = [
   {
     ...defaultSoundParams,
     name: "Shiny Coin",
-    baseFrequency: 880,
-    harmony: 0.5,
-    waveformPairs: ["sine", "triangle"],
+    baseFrequency: 987,
+    sequenceSteps: 2,
+    sequenceOffsets: [0, 5, 0, 0],
+    sequenceBpm: 480,
+    waveformPairs: ["sine"],
     envelopeShape: "piano",
-    decay: 0.2,
+    decay: 0.15,
     reverbAmount: 0.4,
-    echoAmount: 0.3,
-    echoDelay: 0.1,
   },
   {
     ...defaultSoundParams,
@@ -135,13 +142,14 @@ export const GAME_PRESETS: SoundParams[] = [
     ...defaultSoundParams,
     name: "Power Up",
     baseFrequency: 440,
-    harmony: 1.0,
-    waveformPairs: ["sine", "square"],
-    envelopeShape: "strings",
-    attack: 0.2,
-    decay: 0.8,
+    sequenceSteps: 4,
+    sequenceOffsets: [0, 4, 7, 12],
+    sequenceBpm: 320,
+    waveformPairs: ["square"],
+    envelopeShape: "percussive",
+    decay: 0.2,
     vibratoDepth: 0.3,
-    vibratoRate: 6,
-    quantize: 24,
+    vibratoRate: 10,
+    quantize: 12,
   }
 ];

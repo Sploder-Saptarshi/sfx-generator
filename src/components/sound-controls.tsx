@@ -4,7 +4,7 @@ import { SoundParams, WaveformType, NoiseType, EnvelopeShape } from "@/types/aud
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { Waves, Activity, Radio, Wind, Volume2, Filter } from "lucide-react";
+import { Waves, Activity, Radio, Wind, Volume2, Filter, ListMusic } from "lucide-react";
 
 interface SoundControlsProps {
   params: SoundParams;
@@ -14,6 +14,12 @@ interface SoundControlsProps {
 export default function SoundControls({ params, setParams }: SoundControlsProps) {
   const updateParam = (key: keyof SoundParams, value: any) => {
     setParams({ ...params, [key]: value });
+  };
+
+  const updateSequenceOffset = (index: number, val: number) => {
+    const newOffsets = [...params.sequenceOffsets];
+    newOffsets[index] = val;
+    updateParam("sequenceOffsets", newOffsets);
   };
 
   const toggleWaveform = (wf: WaveformType) => {
@@ -33,7 +39,7 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-1">
-      {/* Oscillators: Waveforms & Primary Frequencies */}
+      {/* Oscillators */}
       <div className="space-y-6 p-4 glass-panel rounded-2xl">
         <div className="flex items-center gap-2 mb-2">
           <Waves className="w-4 h-4 text-primary" />
@@ -83,66 +89,63 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
         </div>
       </div>
 
-      {/* Simplified Sculpting Filter & Comb */}
+      {/* Pitch Sequencer */}
       <div className="space-y-6 p-4 glass-panel rounded-2xl border-primary/20 bg-primary/5">
-        <div className="flex items-center gap-2 mb-2">
-          <Filter className="w-4 h-4 text-primary" />
-          <h3 className="text-sm font-bold uppercase tracking-wider text-primary">Sculptor</h3>
-        </div>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs">
-              <Label>Low Pass Cutoff</Label>
-              <span className="text-muted-foreground">{params.filterCutoff === 0 ? 'OFF' : `${params.filterCutoff.toFixed(0)} Hz`}</span>
-            </div>
-            <Slider
-              value={[params.filterCutoff]}
-              min={0}
-              max={10000}
-              step={10}
-              onValueChange={([val]) => updateParam("filterCutoff", val)}
-            />
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2">
+            <ListMusic className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-bold uppercase tracking-wider text-primary">Sequencer</h3>
           </div>
-          
+          <div className="flex items-center gap-1">
+            {[1, 2, 3, 4].map((step) => (
+              <Button
+                key={step}
+                size="icon"
+                variant={params.sequenceSteps === step ? "default" : "ghost"}
+                className="h-6 w-6 text-[10px]"
+                onClick={() => updateParam("sequenceSteps", step)}
+              >
+                {step}
+              </Button>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-5">
+          <div className="grid grid-cols-4 gap-2">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className={`flex flex-col items-center gap-2 ${i >= params.sequenceSteps ? 'opacity-20 pointer-events-none' : ''}`}>
+                <div className="h-24 w-full bg-white/5 rounded-lg flex flex-col justify-end p-1 relative overflow-hidden">
+                   <div 
+                    className="w-full bg-primary/40 rounded-sm transition-all" 
+                    style={{ height: `${((params.sequenceOffsets[i] + 12) / 24) * 100}%` }} 
+                   />
+                   <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold pointer-events-none">
+                    {params.sequenceOffsets[i] > 0 ? '+' : ''}{params.sequenceOffsets[i]}
+                   </span>
+                </div>
+                <Slider
+                  orientation="vertical"
+                  value={[params.sequenceOffsets[i]]}
+                  min={-12}
+                  max={12}
+                  step={1}
+                  onValueChange={([val]) => updateSequenceOffset(i, val)}
+                  className="h-24"
+                />
+              </div>
+            ))}
+          </div>
           <div className="space-y-2 pt-2 border-t border-white/5">
             <div className="flex justify-between text-xs">
-              <Label>Comb Feedback (Resonance)</Label>
-              <span className="text-muted-foreground">{(params.combAmount * 100).toFixed(0)}%</span>
+              <Label>Speed (BPM)</Label>
+              <span className="text-muted-foreground">{params.sequenceBpm}</span>
             </div>
             <Slider
-              value={[params.combAmount]}
-              min={0}
-              max={0.95}
-              step={0.01}
-              onValueChange={([val]) => updateParam("combAmount", val)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs">
-              <Label>Comb Delay (Frequency)</Label>
-              <span className="text-muted-foreground">{(params.combDelay * 1000).toFixed(1)}ms</span>
-            </div>
-            <Slider
-              value={[params.combDelay]}
-              min={0.0001}
-              max={0.05}
-              step={0.0001}
-              onValueChange={([val]) => updateParam("combDelay", val)}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs">
-              <Label>Filter Resonance</Label>
-              <span className="text-muted-foreground">{params.filterResonance.toFixed(1)}</span>
-            </div>
-            <Slider
-              value={[params.filterResonance]}
-              min={0}
-              max={20}
-              step={0.1}
-              onValueChange={([val]) => updateParam("filterResonance", val)}
+              value={[params.sequenceBpm]}
+              min={60}
+              max={1200}
+              step={10}
+              onValueChange={([val]) => updateParam("sequenceBpm", val)}
             />
           </div>
         </div>
@@ -169,7 +172,7 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
           </div>
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
-              <Label>Frequency Jitter (Destructive)</Label>
+              <Label>Frequency Jitter</Label>
               <span className="text-muted-foreground">{(params.noiseModulation * 100).toFixed(0)}%</span>
             </div>
             <Slider
@@ -290,8 +293,70 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
         </div>
       </div>
 
-      {/* Space */}
+      {/* Sculptor */}
       <div className="space-y-6 p-4 glass-panel rounded-2xl">
+        <div className="flex items-center gap-2 mb-2">
+          <Filter className="w-4 h-4 text-primary" />
+          <h3 className="text-sm font-bold uppercase tracking-wider text-primary">Sculptor</h3>
+        </div>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <Label>Low Pass Cutoff</Label>
+              <span className="text-muted-foreground">{params.filterCutoff === 0 ? 'OFF' : `${params.filterCutoff.toFixed(0)} Hz`}</span>
+            </div>
+            <Slider
+              value={[params.filterCutoff]}
+              min={0}
+              max={10000}
+              step={10}
+              onValueChange={([val]) => updateParam("filterCutoff", val)}
+            />
+          </div>
+          <div className="space-y-2 pt-2 border-t border-white/5">
+            <div className="flex justify-between text-xs">
+              <Label>Comb Feedback</Label>
+              <span className="text-muted-foreground">{(params.combAmount * 100).toFixed(0)}%</span>
+            </div>
+            <Slider
+              value={[params.combAmount]}
+              min={0}
+              max={0.95}
+              step={0.01}
+              onValueChange={([val]) => updateParam("combAmount", val)}
+            />
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <Label>Comb Delay</Label>
+              <span className="text-muted-foreground">{(params.combDelay * 1000).toFixed(1)}ms</span>
+            </div>
+            <Slider
+              value={[params.combDelay]}
+              min={0.0001}
+              max={0.05}
+              step={0.0001}
+              onValueChange={([val]) => updateParam("combDelay", val)}
+            />
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <Label>Filter Resonance</Label>
+              <span className="text-muted-foreground">{params.filterResonance.toFixed(1)}</span>
+            </div>
+            <Slider
+              value={[params.filterResonance]}
+              min={0}
+              max={20}
+              step={0.1}
+              onValueChange={([val]) => updateParam("filterResonance", val)}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Space */}
+      <div className="space-y-6 p-4 glass-panel rounded-2xl md:col-span-2 lg:col-span-1">
         <div className="flex items-center gap-2 mb-2">
           <Wind className="w-4 h-4 text-primary" />
           <h3 className="text-sm font-bold uppercase tracking-wider text-primary">Space</h3>

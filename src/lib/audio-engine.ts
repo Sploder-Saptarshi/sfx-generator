@@ -100,6 +100,81 @@ class AudioEngine {
     return buffer;
   }
 
+  private triggerNote(ctx: BaseAudioContext, time: number, freq: number, params: SoundParams, destination: AudioNode) {
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0.0001, time);
+    
+    const peakLevel = 0.6 / (params.waveformPairs.length || 1);
+    const duration = params.attack + params.decay;
+    
+    if (params.envelopeShape === 'piano') {
+      env.gain.exponentialRampToValueAtTime(peakLevel, time + Math.max(0.001, params.attack));
+      env.gain.exponentialRampToValueAtTime(0.001, time + duration);
+    } else if (params.envelopeShape === 'strings') {
+      env.gain.linearRampToValueAtTime(peakLevel, time + params.attack);
+      env.gain.linearRampToValueAtTime(0, time + duration);
+    } else if (params.envelopeShape === 'percussive') {
+      env.gain.exponentialRampToValueAtTime(peakLevel, time + 0.005);
+      env.gain.exponentialRampToValueAtTime(0.0001, time + 0.005 + params.decay);
+    } else if (params.envelopeShape === 'reverse') {
+      env.gain.linearRampToValueAtTime(peakLevel, time + params.attack);
+      env.gain.linearRampToValueAtTime(0.001, time + params.attack + 0.01);
+    }
+    
+    env.connect(destination);
+
+    // Noise layer per note
+    let noiseModNode: GainNode | null = null;
+    if (params.noiseAmount > 0 || params.noiseModulation > 0) {
+      const noiseSource = ctx.createBufferSource();
+      noiseSource.buffer = this.createNoiseBuffer(params.noiseType);
+      noiseSource.loop = true;
+      
+      const additiveNoiseGain = ctx.createGain();
+      additiveNoiseGain.gain.value = params.noiseAmount * 0.3;
+      noiseSource.connect(additiveNoiseGain);
+      additiveNoiseGain.connect(env);
+      
+      noiseSource.start(time);
+      noiseSource.stop(time + duration + 0.1);
+
+      if (params.noiseModulation > 0) {
+        noiseModNode = ctx.createGain();
+        noiseModNode.gain.value = params.noiseModulation * 500;
+        noiseSource.connect(noiseModNode);
+      }
+    }
+
+    // Oscillators per note
+    params.waveformPairs.forEach((wf, index) => {
+      let finalFreq = freq * (index === 1 ? (1 + params.harmony) : 1);
+      finalFreq = this.quantizeFreq(finalFreq, params.quantize);
+      
+      const osc = ctx.createOscillator();
+      osc.type = wf as OscillatorType;
+      osc.frequency.setValueAtTime(finalFreq, time);
+
+      if (noiseModNode) {
+        noiseModNode.connect(osc.frequency);
+      }
+
+      if (params.vibratoDepth > 0) {
+        const lfo = ctx.createOscillator();
+        const lfoGain = ctx.createGain();
+        lfo.frequency.value = params.vibratoRate;
+        lfoGain.gain.value = params.vibratoDepth * 50;
+        lfo.connect(lfoGain);
+        lfoGain.connect(osc.frequency);
+        lfo.start(time);
+        lfo.stop(time + duration);
+      }
+
+      osc.connect(env);
+      osc.start(time);
+      osc.stop(time + duration);
+    });
+  }
+
   play(params: SoundParams) {
     if (!this.ctx || !this.compressor) return;
 
@@ -117,13 +192,11 @@ class AudioEngine {
     const combSum = this.ctx.createGain();
     const combDelay = this.ctx.createDelay(0.1);
     const combFeedback = this.ctx.createGain();
-    
     combDelay.delayTime.setValueAtTime(Math.max(0.0001, params.combDelay), now);
     combFeedback.gain.setValueAtTime(params.combAmount, now);
 
     masterGain.connect(combSum);
     combSum.connect(filter);
-    
     if (params.combAmount > 0) {
       combSum.connect(combDelay);
       combDelay.connect(combFeedback);
@@ -153,87 +226,28 @@ class AudioEngine {
       delay.connect(this.compressor);
     }
 
-    const env = this.ctx.createGain();
-    env.gain.setValueAtTime(0.0001, now);
-    
-    const peakLevel = 0.6 / (params.waveformPairs.length || 1);
-    
-    if (params.envelopeShape === 'piano') {
-      env.gain.exponentialRampToValueAtTime(peakLevel, now + Math.max(0.001, params.attack));
-      env.gain.exponentialRampToValueAtTime(0.001, now + params.attack + params.decay);
-    } else if (params.envelopeShape === 'strings') {
-      env.gain.linearRampToValueAtTime(peakLevel, now + params.attack);
-      env.gain.linearRampToValueAtTime(0, now + params.attack + params.decay);
-    } else if (params.envelopeShape === 'percussive') {
-      // Snappy impact: instant attack, exponential decay
-      env.gain.exponentialRampToValueAtTime(peakLevel, now + 0.005);
-      env.gain.exponentialRampToValueAtTime(0.0001, now + 0.005 + params.decay);
-    } else if (params.envelopeShape === 'reverse') {
-      env.gain.linearRampToValueAtTime(peakLevel, now + params.attack);
-      env.gain.linearRampToValueAtTime(0.001, now + params.attack + 0.01); // Sharp cut
-    }
-    
-    env.connect(masterGain);
-
-    let noiseModNode: GainNode | null = null;
-    if (params.noiseAmount > 0 || params.noiseModulation > 0) {
-      const noiseSource = this.ctx.createBufferSource();
-      noiseSource.buffer = this.createNoiseBuffer(params.noiseType);
-      noiseSource.loop = true;
-      
-      const additiveNoiseGain = this.ctx.createGain();
-      additiveNoiseGain.gain.value = params.noiseAmount * 0.3;
-      noiseSource.connect(additiveNoiseGain);
-      additiveNoiseGain.connect(env);
-      
-      noiseSource.start(now);
-      noiseSource.stop(now + params.attack + params.decay + 1);
-
-      if (params.noiseModulation > 0) {
-        noiseModNode = this.ctx.createGain();
-        noiseModNode.gain.value = params.noiseModulation * 500;
-        noiseSource.connect(noiseModNode);
-      }
+    // Sequence execution
+    const stepDuration = 60 / params.sequenceBpm;
+    for (let i = 0; i < params.sequenceSteps; i++) {
+      const offsetSemitones = params.sequenceOffsets[i];
+      const freqMultiplier = Math.pow(2, offsetSemitones / 12);
+      const freq = params.baseFrequency * freqMultiplier;
+      this.triggerNote(this.ctx, now + i * stepDuration, freq, params, masterGain);
     }
 
-    params.waveformPairs.forEach((wf, index) => {
-      let freq = params.baseFrequency * (index === 1 ? (1 + params.harmony) : 1);
-      freq = this.quantizeFreq(freq, params.quantize);
-      
-      const osc = this.ctx!.createOscillator();
-      osc.type = wf as OscillatorType;
-      osc.frequency.setValueAtTime(freq, now);
-
-      if (noiseModNode) {
-        noiseModNode.connect(osc.frequency);
-      }
-
-      if (params.vibratoDepth > 0) {
-        const lfo = this.ctx!.createOscillator();
-        const lfoGain = this.ctx!.createGain();
-        lfo.frequency.value = params.vibratoRate;
-        lfoGain.gain.value = params.vibratoDepth * 50;
-        lfo.connect(lfoGain);
-        lfoGain.connect(osc.frequency);
-        lfo.start(now);
-        lfo.stop(now + params.attack + params.decay);
-      }
-
-      osc.connect(env);
-      osc.start(now);
-      osc.stop(now + params.attack + params.decay);
-    });
-
+    // Cleanup
+    const totalDuration = (params.sequenceSteps * stepDuration) + params.attack + params.decay + 5;
     setTimeout(() => {
         masterGain.disconnect();
         filter.disconnect();
-    }, (params.attack + params.decay + Math.max(params.echoDelay * 10, 1)) * 1000 + 500);
+    }, totalDuration * 1000);
   }
 
   async exportToWav(params: SoundParams): Promise<Blob> {
     const sampleRate = 44100;
-    const duration = params.attack + params.decay + (params.echoAmount > 0 ? params.echoDelay * 10 : 0);
-    const offlineCtx = new OfflineAudioContext(1, Math.ceil(sampleRate * Math.max(0.1, duration + 1)), sampleRate);
+    const stepDuration = 60 / params.sequenceBpm;
+    const totalDuration = (params.sequenceSteps * stepDuration) + params.attack + params.decay + (params.echoAmount > 0 ? 2 : 0);
+    const offlineCtx = new OfflineAudioContext(1, Math.ceil(sampleRate * (totalDuration + 1)), sampleRate);
 
     const now = 0;
     
@@ -278,70 +292,12 @@ class AudioEngine {
       delay.connect(compressor);
     }
 
-    const env = offlineCtx.createGain();
-    env.gain.setValueAtTime(0.0001, now);
-    const peakLevel = 0.6 / (params.waveformPairs.length || 1);
-
-    if (params.envelopeShape === 'piano') {
-      env.gain.exponentialRampToValueAtTime(peakLevel, now + Math.max(0.001, params.attack));
-      env.gain.exponentialRampToValueAtTime(0.001, now + params.attack + params.decay);
-    } else if (params.envelopeShape === 'strings') {
-      env.gain.linearRampToValueAtTime(peakLevel, now + params.attack);
-      env.gain.linearRampToValueAtTime(0, now + params.attack + params.decay);
-    } else if (params.envelopeShape === 'percussive') {
-      env.gain.exponentialRampToValueAtTime(peakLevel, now + 0.005);
-      env.gain.exponentialRampToValueAtTime(0.0001, now + 0.005 + params.decay);
-    } else if (params.envelopeShape === 'reverse') {
-      env.gain.linearRampToValueAtTime(peakLevel, now + params.attack);
-      env.gain.linearRampToValueAtTime(0.001, now + params.attack + 0.01);
+    for (let i = 0; i < params.sequenceSteps; i++) {
+      const offsetSemitones = params.sequenceOffsets[i];
+      const freqMultiplier = Math.pow(2, offsetSemitones / 12);
+      const freq = params.baseFrequency * freqMultiplier;
+      this.triggerNote(offlineCtx, now + i * stepDuration, freq, params, masterGain);
     }
-    
-    env.connect(masterGain);
-
-    let noiseModNode: GainNode | null = null;
-    if (params.noiseAmount > 0 || params.noiseModulation > 0) {
-      const noiseBuffer = this.createNoiseBuffer(params.noiseType);
-      const noiseSource = offlineCtx.createBufferSource();
-      noiseSource.buffer = noiseBuffer;
-      noiseSource.loop = true;
-      const noiseGain = offlineCtx.createGain();
-      noiseGain.gain.value = params.noiseAmount * 0.3;
-      noiseSource.connect(noiseGain);
-      noiseGain.connect(env);
-      noiseSource.start(now);
-
-      if (params.noiseModulation > 0) {
-        noiseModNode = offlineCtx.createGain();
-        noiseModNode.gain.value = params.noiseModulation * 500;
-        noiseSource.connect(noiseModNode);
-      }
-    }
-
-    params.waveformPairs.forEach((wf, index) => {
-      let freq = params.baseFrequency * (index === 1 ? (1 + params.harmony) : 1);
-      freq = this.quantizeFreq(freq, params.quantize);
-      
-      const osc = offlineCtx.createOscillator();
-      osc.type = wf as OscillatorType;
-      osc.frequency.setValueAtTime(freq, now);
-      
-      if (noiseModNode) {
-        noiseModNode.connect(osc.frequency);
-      }
-
-      if (params.vibratoDepth > 0) {
-        const lfo = offlineCtx.createOscillator();
-        const lfoGain = offlineCtx.createGain();
-        lfo.frequency.value = params.vibratoRate;
-        lfoGain.gain.value = params.vibratoDepth * 50;
-        lfo.connect(lfoGain);
-        lfoGain.connect(osc.frequency);
-        lfo.start(now);
-      }
-
-      osc.connect(env);
-      osc.start(now);
-    });
 
     const renderedBuffer = await offlineCtx.startRendering();
     return this.audioBufferToWav(renderedBuffer);

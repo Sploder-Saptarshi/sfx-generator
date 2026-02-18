@@ -27,13 +27,16 @@ const GenerateSoundEffectFromDescriptionOutputSchema = z.object({
   noiseModulation: z.number().min(0).max(1),
   filterCutoff: z.number().min(0).max(10000),
   filterResonance: z.number().min(0).max(20),
-  combAmount: z.number().min(0).max(0.95).describe('Amount of metallic resonance feedback.'),
-  combDelay: z.number().min(0.0001).max(0.05).describe('Delay time for the comb filter resonance.'),
+  combAmount: z.number().min(0).max(0.95),
+  combDelay: z.number().min(0.0001).max(0.05),
   vibratoDepth: z.number().min(0).max(1),
   vibratoRate: z.number().min(0).max(20),
   reverbAmount: z.number().min(0).max(1),
   echoAmount: z.number().min(0).max(1),
   echoDelay: z.number().min(0).max(0.5),
+  sequenceSteps: z.number().min(1).max(4).describe('Number of notes in the progression (1 for single hit, 2-4 for melodies).'),
+  sequenceOffsets: z.array(z.number().min(-12).max(12)).length(4).describe('Pitch offsets in semitones for each step.'),
+  sequenceBpm: z.number().min(60).max(1200).describe('Tempo of the pitch sequence.'),
 });
 export type GenerateSoundEffectFromDescriptionOutput = z.infer<typeof GenerateSoundEffectFromDescriptionOutputSchema>;
 
@@ -46,15 +49,15 @@ const generateSoundEffectPrompt = ai.definePrompt({
 Description: {{{this}}}
 
 Guidelines:
+- "sequenceSteps": Use 2-4 for sounds like "coin pickup" (ca-ching), "level up" (arpeggio), or "failed" (downward notes). Use 1 for single hits.
+- "sequenceOffsets": Set semitone shifts for the notes. e.g., [0, 5, 0, 0] for a 2-step jump, or [0, 4, 7, 12] for a major arpeggio.
 - "envelopeShape": 
-    - "piano": Standard decay, snappy but natural.
-    - "strings": Slow, fading textures.
-    - "percussive": Explosive, immediate hits.
-    - "reverse": Swelling, rising effects.
-- Use "combAmount" and "combDelay" for metallic, industrial, robotic, or ringing textures. Higher combAmount (0.7-0.9) creates strong resonance.
-- Use "quantize" for retro, chiptune, or stepped pitch effects.
-- Use "noiseModulation" for grit and debris.
-- Use "filterCutoff" to muffle sounds. 0 means off.`,
+    - "piano": Standard decay.
+    - "strings": Slow, fading.
+    - "percussive": Snappy, explosive.
+    - "reverse": Swelling/rising.
+- Use "combAmount" and "combDelay" for metallic textures.
+- Use "quantize" for retro/chiptune effects.`,
 });
 
 const generateSoundEffectFromDescriptionFlow = ai.defineFlow(
