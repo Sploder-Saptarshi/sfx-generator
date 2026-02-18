@@ -79,7 +79,7 @@ export default function Randomizer({ onRandomize }: RandomizerProps) {
 
   return (
     <div className="w-full bg-muted/20 border-y border-white/5 py-4 px-6">
-      <div className="flex flex-col sm:flex-row items-center gap-4 max-w-4xl">
+      <div className="flex flex-col sm:flex-row items-center gap-4 max-w-4xl mx-auto">
         <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground/50 select-none shrink-0">
           <Dices className="w-4 h-4" />
           Entropy Engine
@@ -98,20 +98,10 @@ export default function Randomizer({ onRandomize }: RandomizerProps) {
           
           <Button 
             onClick={handleRandomize}
-            className="bg-accent hover:bg-accent/90 shadow-lg shadow-accent/20 rounded-xl h-10 px-8 font-bold gap-2 transition-all active:scale-95"
+            className="bg-accent hover:bg-accent/90 shadow-lg shadow-accent/20 rounded-xl h-10 px-8 font-bold gap-2 transition-all active:scale-95 shrink-0"
           >
             <RefreshCw className="w-4 h-4" />
             RANDOMIZE
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSeed(Math.floor(Math.random() * 999999))}
-            className="h-10 w-10 rounded-xl hover:bg-white/10"
-            title="New Random Seed"
-          >
-            <RefreshCw className="w-4 h-4 rotate-45" />
           </Button>
         </div>
       </div>
