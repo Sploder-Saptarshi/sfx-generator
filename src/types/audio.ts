@@ -18,7 +18,7 @@ export interface SoundParams {
   noiseAmount: number;
   noiseType: NoiseType;
   noiseModulation: number; // Jitters the oscillator frequency
-  lfoAmount: number;       // Modulates filter cutoff
+  lfoAmount: number;       // Modulates volume
   lfoRate: number;         // LFO frequency in Hz
   filterType: FilterType;
   filterCutoff: number;    // Glues the sound together (0 = off, 1-10000 = Hz)
@@ -72,15 +72,19 @@ export const GAME_PRESETS: SoundParams[] = [
   {
     ...defaultSoundParams,
     name: "Classic Laser",
-    baseFrequency: 1600,
-    frequencyDrift: -24, // Sharp downward slide for "pew"
-    waveformPairs: ["sawtooth"],
+    attack: 0.1,
+    decay: 0.82,
     envelopeShape: "percussive",
-    decay: 0.15,
+    baseFrequency: 922,
+    frequencyDrift: -24,
+    waveformPairs: ["sawtooth", "sine"],
+    noiseModulation: 0.1,
+    lfoAmount: 0.73,
+    lfoRate: 12.4,
+    filterCutoff: 8000,
     combAmount: 0.6,
     combDelay: 0.001,
-    noiseModulation: 0.1,
-    filterCutoff: 8000,
+    echoDelay: 0.21,
   },
   {
     ...defaultSoundParams,
