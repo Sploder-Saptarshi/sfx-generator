@@ -224,7 +224,7 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
           <div className="space-y-4 pt-4 border-t border-white/5">
             <div className="flex items-center gap-2">
               <Zap className="w-3.5 h-3.5 text-accent" />
-              <Label className="text-[10px] uppercase font-bold text-muted-foreground">Filter LFO</Label>
+              <Label className="text-[10px] uppercase font-bold text-muted-foreground">Volume Pulse (LFO)</Label>
             </div>
             <div className="space-y-2">
               <div className="flex justify-between text-[10px]">

@@ -189,6 +189,23 @@ class AudioEngine {
     
     const masterGain = this.ctx.createGain();
     masterGain.gain.setValueAtTime(0.75, now);
+
+    // LFO for Volume (Tremolo / Pulsing)
+    const lfoVca = this.ctx.createGain();
+    lfoVca.gain.setValueAtTime(1.0, now);
+    if (params.lfoAmount > 0) {
+      const lfo = this.ctx.createOscillator();
+      const lfoGain = this.ctx.createGain();
+      lfo.frequency.value = params.lfoRate;
+      // Modulate between (1 - depth) and 1.
+      lfoGain.gain.value = params.lfoAmount * 0.5;
+      lfoVca.gain.value = 1.0 - (params.lfoAmount * 0.5);
+      lfo.connect(lfoGain);
+      lfoGain.connect(lfoVca.gain);
+      lfo.start(now);
+      const totalDuration = (params.sequenceSteps * (60 / params.sequenceBpm)) + params.attack + params.decay + 5;
+      lfo.stop(now + totalDuration);
+    }
     
     const filter = this.ctx.createBiquadFilter();
     filter.type = 'lowpass';
@@ -196,27 +213,16 @@ class AudioEngine {
     filter.frequency.setValueAtTime(cutoffFreq, now);
     filter.Q.setValueAtTime(params.filterResonance, now);
 
-    // Filter LFO (Wah-Wah / Pulse)
-    if (params.lfoAmount > 0) {
-      const lfo = this.ctx.createOscillator();
-      const lfoGain = this.ctx.createGain();
-      lfo.frequency.value = params.lfoRate;
-      lfoGain.gain.value = params.lfoAmount * 5000; // Modulate up to 5kHz
-      lfo.connect(lfoGain);
-      lfoGain.connect(filter.frequency);
-      lfo.start(now);
-      const totalDuration = (params.sequenceSteps * (60 / params.sequenceBpm)) + params.attack + params.decay + 5;
-      lfo.stop(now + totalDuration);
-    }
-
     const combSum = this.ctx.createGain();
     const combDelay = this.ctx.createDelay(0.1);
     const combFeedback = this.ctx.createGain();
     combDelay.delayTime.setValueAtTime(Math.max(0.0001, params.combDelay), now);
     combFeedback.gain.setValueAtTime(params.combAmount, now);
 
-    masterGain.connect(combSum);
+    masterGain.connect(lfoVca);
+    lfoVca.connect(combSum);
     combSum.connect(filter);
+
     if (params.combAmount > 0) {
       combSum.connect(combDelay);
       combDelay.connect(combFeedback);
@@ -278,23 +284,26 @@ class AudioEngine {
 
     const masterGain = offlineCtx.createGain();
     masterGain.gain.setValueAtTime(0.75, now);
+
+    const lfoVca = offlineCtx.createGain();
+    lfoVca.gain.setValueAtTime(1.0, now);
+    if (params.lfoAmount > 0) {
+      const lfo = offlineCtx.createOscillator();
+      const lfoGain = offlineCtx.createGain();
+      lfo.frequency.value = params.lfoRate;
+      lfoGain.gain.value = params.lfoAmount * 0.5;
+      lfoVca.gain.value = 1.0 - (params.lfoAmount * 0.5);
+      lfo.connect(lfoGain);
+      lfoGain.connect(lfoVca.gain);
+      lfo.start(now);
+      lfo.stop(now + totalDuration);
+    }
     
     const filter = offlineCtx.createBiquadFilter();
     filter.type = 'lowpass';
     const cutoffFreq = params.filterCutoff === 0 ? 20000 : Math.max(20, params.filterCutoff);
     filter.frequency.setValueAtTime(cutoffFreq, now);
     filter.Q.setValueAtTime(params.filterResonance, now);
-
-    if (params.lfoAmount > 0) {
-      const lfo = offlineCtx.createOscillator();
-      const lfoGain = offlineCtx.createGain();
-      lfo.frequency.value = params.lfoRate;
-      lfoGain.gain.value = params.lfoAmount * 5000;
-      lfo.connect(lfoGain);
-      lfoGain.connect(filter.frequency);
-      lfo.start(now);
-      lfo.stop(now + totalDuration);
-    }
     
     const combSum = offlineCtx.createGain();
     const combDelay = offlineCtx.createDelay(0.1);
@@ -302,8 +311,10 @@ class AudioEngine {
     combDelay.delayTime.setValueAtTime(Math.max(0.0001, params.combDelay), now);
     combFeedback.gain.setValueAtTime(params.combAmount, now);
 
-    masterGain.connect(combSum);
+    masterGain.connect(lfoVca);
+    lfoVca.connect(combSum);
     combSum.connect(filter);
+    
     if (params.combAmount > 0) {
       combSum.connect(combDelay);
       combDelay.connect(combFeedback);
