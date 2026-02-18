@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { SoundParams, defaultSoundParams, GAME_PRESETS } from "@/types/audio";
 import { audioEngine } from "@/lib/audio-engine";
+import { encodeSoundParams, decodeSoundParams } from "@/lib/url-sharing";
 import SoundControls from "@/components/sound-controls";
 import AudioVisualizer from "@/components/audio-visualizer";
 import AiGenerator from "@/components/ai-generator";
@@ -13,14 +14,32 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Play, Download, Headphones, Share2, Github, LayoutGrid, Music } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SoundSculptorApp() {
+  const { toast } = useToast();
   const [params, setParams] = useState<SoundParams>(defaultSoundParams);
   const [isInitialized, setIsInitialized] = useState(false);
   const [presets, setPresets] = useState<SoundParams[]>([]);
 
   useEffect(() => {
-    // Load presets from localStorage on mount
+    // 1. Handle URL Sharing on Load
+    const search = window.location.search;
+    if (search) {
+      const sharedParams = decodeSoundParams(search);
+      if (Object.keys(sharedParams).length > 0) {
+        setParams({
+          ...defaultSoundParams,
+          ...sharedParams,
+        } as SoundParams);
+        toast({
+          title: "Sound Imported",
+          description: "Shared parameters have been loaded.",
+        });
+      }
+    }
+
+    // 2. Load presets from localStorage
     const stored = localStorage.getItem("sound-presets");
     if (stored) {
       try {
@@ -70,6 +89,24 @@ export default function SoundSculptorApp() {
     URL.revokeObjectURL(url);
   };
 
+  const handleShare = () => {
+    const compressed = encodeSoundParams(params);
+    const url = `${window.location.origin}${window.location.pathname}?${compressed}`;
+    
+    navigator.clipboard.writeText(url).then(() => {
+      toast({
+        title: "Link Copied!",
+        description: "Your sound settings are ready to share.",
+      });
+    }).catch(() => {
+      toast({
+        variant: "destructive",
+        title: "Share Failed",
+        description: "Could not copy to clipboard.",
+      });
+    });
+  };
+
   const handleTabChange = (value: string) => {
     audioEngine.stopAll();
   };
@@ -89,7 +126,12 @@ export default function SoundSculptorApp() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" className="rounded-full">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="rounded-full bg-primary/10 border-primary/20 text-primary hover:bg-primary/20"
+            onClick={handleShare}
+          >
             <Share2 className="w-4 h-4" />
           </Button>
           <a 
