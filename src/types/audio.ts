@@ -103,14 +103,43 @@ export const GAME_PRESETS: SoundParams[] = [
   {
     ...defaultSoundParams,
     name: "Shiny Coin",
-    baseFrequency: 987,
+    baseFrequency: 1318, // E6
     sequenceSteps: 2,
-    sequenceOffsets: [0, 5, 0, 0],
-    sequenceBpm: 480,
+    sequenceOffsets: [0, 5, 0, 0], // E -> A (classic ca-ching)
+    sequenceBpm: 600,
     waveformPairs: ["sine"],
     envelopeShape: "piano",
     decay: 0.15,
     reverbAmount: 0.4,
+  },
+  {
+    ...defaultSoundParams,
+    name: "Power Up",
+    baseFrequency: 440,
+    sequenceSteps: 4,
+    sequenceOffsets: [0, 4, 7, 12], // Major Arpeggio
+    sequenceBpm: 400,
+    waveformPairs: ["square"],
+    envelopeShape: "percussive",
+    decay: 0.15,
+    vibratoDepth: 0.3,
+    vibratoRate: 10,
+    quantize: 12,
+    reverbAmount: 0.3,
+  },
+  {
+    ...defaultSoundParams,
+    name: "Game Over",
+    baseFrequency: 220,
+    sequenceSteps: 3,
+    sequenceOffsets: [0, -3, -7, 0], // Minor descent
+    sequenceBpm: 180,
+    waveformPairs: ["sawtooth"],
+    envelopeShape: "strings",
+    attack: 0.1,
+    decay: 0.6,
+    filterCutoff: 2000,
+    reverbAmount: 0.6,
   },
   {
     ...defaultSoundParams,
@@ -138,18 +167,4 @@ export const GAME_PRESETS: SoundParams[] = [
     filterCutoff: 2000,
     filterResonance: 8,
   },
-  {
-    ...defaultSoundParams,
-    name: "Power Up",
-    baseFrequency: 440,
-    sequenceSteps: 4,
-    sequenceOffsets: [0, 4, 7, 12],
-    sequenceBpm: 320,
-    waveformPairs: ["square"],
-    envelopeShape: "percussive",
-    decay: 0.2,
-    vibratoDepth: 0.3,
-    vibratoRate: 10,
-    quantize: 12,
-  }
 ];

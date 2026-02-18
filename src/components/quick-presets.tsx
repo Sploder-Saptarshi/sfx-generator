@@ -3,7 +3,7 @@
 import { GAME_PRESETS, SoundParams } from "@/types/audio";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Zap, ArrowUp, Bomb, Coins, Repeat, Target, Star } from "lucide-react";
+import { Zap, ArrowUp, Bomb, Coins, Repeat, Target, Star, Skull } from "lucide-react";
 
 interface QuickPresetsProps {
   onSelect: (params: SoundParams) => void;
@@ -17,6 +17,7 @@ const presetIcons: Record<string, any> = {
   "Teleport Warp": Repeat,
   "Retro Hit": Target,
   "Power Up": Star,
+  "Game Over": Skull,
 };
 
 export default function QuickPresets({ onSelect }: QuickPresetsProps) {
