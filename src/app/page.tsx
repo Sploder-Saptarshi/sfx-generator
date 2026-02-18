@@ -37,6 +37,7 @@ import { Input } from "@/components/ui/input";
 export default function SoundSculptorApp() {
   const { toast } = useToast();
   const [params, setParams] = useState<SoundParams>(defaultSoundParams);
+  const [masterVolume, setMasterVolume] = useState(1.0);
   const [isInitialized, setIsInitialized] = useState(false);
   const [presets, setPresets] = useState<SoundParams[]>([]);
   
@@ -60,6 +61,16 @@ export default function SoundSculptorApp() {
             title: "Sound Imported",
             description: "Shared parameters have been loaded.",
           });
+        }
+      }
+
+      // Load master volume
+      const storedVolume = localStorage.getItem("master-volume");
+      if (storedVolume) {
+        const vol = parseFloat(storedVolume);
+        if (!isNaN(vol)) {
+          setMasterVolume(vol);
+          audioEngine.setMasterVolume(vol);
         }
       }
     }
@@ -96,6 +107,12 @@ export default function SoundSculptorApp() {
       ...prev,
       ...newParams,
     }));
+  };
+
+  const handleUpdateMasterVolume = (val: number) => {
+    setMasterVolume(val);
+    audioEngine.setMasterVolume(val);
+    localStorage.setItem("master-volume", val.toString());
   };
 
   const handleSelectPreset = (newParams: SoundParams) => {
@@ -222,6 +239,8 @@ export default function SoundSculptorApp() {
                   <SoundControls 
                     params={params} 
                     setParams={handleUpdateParams} 
+                    masterVolume={masterVolume}
+                    setMasterVolume={handleUpdateMasterVolume}
                     onPresetsChange={() => {
                         const stored = localStorage.getItem("sound-presets");
                         if (stored) {

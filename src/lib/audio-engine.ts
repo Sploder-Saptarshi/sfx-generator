@@ -13,6 +13,7 @@ class AudioEngine {
   private reverbBuffer: AudioBuffer | null = null;
   private compositionLoopInterval: any = null;
   private activeNodes: Set<AudioScheduledSourceNode> = new Set();
+  private masterVolume: number = 1.0;
 
   async init() {
     if (!this.ctx) {
@@ -37,6 +38,10 @@ class AudioEngine {
     if (this.ctx.state === 'suspended') {
       await this.ctx.resume();
     }
+  }
+
+  setMasterVolume(val: number) {
+    this.masterVolume = val;
   }
 
   getAnalyser() {
@@ -212,7 +217,8 @@ class AudioEngine {
     const baseFreq = frequencyOverride || params.baseFrequency;
     
     const masterGain = this.ctx.createGain();
-    masterGain.gain.setValueAtTime(0.75, now);
+    // Apply user master volume
+    masterGain.gain.setValueAtTime(0.75 * this.masterVolume, now);
 
     const lfoVca = this.ctx.createGain();
     lfoVca.gain.setValueAtTime(1.0, now);
@@ -377,7 +383,8 @@ class AudioEngine {
           const freq = NOTE_FREQUENCIES[noteName] || 440;
           
           const masterGain = offlineCtx.createGain();
-          masterGain.gain.value = 0.5;
+          // Apply master volume in export too
+          masterGain.gain.value = 0.5 * this.masterVolume;
           masterGain.connect(compressor);
           this.triggerNote(offlineCtx, time, freq, sound, masterGain);
         }
@@ -411,7 +418,8 @@ class AudioEngine {
     compressor.connect(offlineCtx.destination);
 
     const masterGain = offlineCtx.createGain();
-    masterGain.gain.setValueAtTime(0.75, now);
+    // Use master volume
+    masterGain.gain.setValueAtTime(0.75 * this.masterVolume, now);
     masterGain.connect(compressor);
 
     sequence.forEach((offsetSemitones, i) => {

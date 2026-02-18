@@ -10,10 +10,12 @@ import PresetsList from "./presets-list";
 interface SoundControlsProps {
   params: SoundParams;
   setParams: (params: SoundParams) => void;
+  masterVolume: number;
+  setMasterVolume: (val: number) => void;
   onPresetsChange?: () => void;
 }
 
-export default function SoundControls({ params, setParams, onPresetsChange }: SoundControlsProps) {
+export default function SoundControls({ params, setParams, masterVolume, setMasterVolume, onPresetsChange }: SoundControlsProps) {
   const updateParam = (key: keyof SoundParams, value: any) => {
     setParams({ ...params, [key]: value });
   };
@@ -117,6 +119,24 @@ export default function SoundControls({ params, setParams, onPresetsChange }: So
               max={24}
               step={1}
               onValueChange={([val]) => updateParam("frequencyDrift", val)}
+            />
+          </div>
+
+          <div className="space-y-2 pt-2 border-t border-white/5">
+            <div className="flex justify-between text-xs">
+              <div className="flex items-center gap-1.5">
+                <Volume2 className="w-3.5 h-3.5 text-blue-400" />
+                <Label className="text-blue-400">Master Volume</Label>
+              </div>
+              <span className="text-muted-foreground">{(masterVolume * 100).toFixed(0)}%</span>
+            </div>
+            <Slider
+              value={[masterVolume]}
+              min={0.25}
+              max={1.0}
+              step={0.01}
+              onValueChange={([val]) => setMasterVolume(val)}
+              className="[&>[data-slot=slider-range]]:bg-blue-400"
             />
           </div>
         </div>

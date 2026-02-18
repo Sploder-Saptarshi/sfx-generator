@@ -20,7 +20,6 @@ const keyMap: Record<string, keyof SoundParams> = {
   nm: "noiseModulation",
   la: "lfoAmount",
   lr: "lfoRate",
-  ft: "filterType",
   fc: "filterCutoff",
   fr: "filterResonance",
   ca: "combAmount",
