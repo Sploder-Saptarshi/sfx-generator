@@ -112,8 +112,10 @@ class AudioEngine {
     masterGain.gain.setValueAtTime(0.75, now);
     
     const filter = this.ctx.createBiquadFilter();
-    filter.type = params.filterType || 'lowpass';
-    filter.frequency.setValueAtTime(params.filterCutoff, now);
+    filter.type = 'lowpass';
+    // If cutoff is 0, we set it to 20kHz (effectively off)
+    const cutoffFreq = params.filterCutoff === 0 ? 20000 : Math.max(20, params.filterCutoff);
+    filter.frequency.setValueAtTime(cutoffFreq, now);
     filter.Q.setValueAtTime(params.filterResonance, now);
     
     // Connection: [Oscs/Noise] -> [Env] -> [MasterGain] -> [Filter] -> [Compressor]
@@ -231,8 +233,9 @@ class AudioEngine {
     masterGain.gain.setValueAtTime(0.75, now);
     
     const filter = offlineCtx.createBiquadFilter();
-    filter.type = params.filterType || 'lowpass';
-    filter.frequency.setValueAtTime(params.filterCutoff, now);
+    filter.type = 'lowpass';
+    const cutoffFreq = params.filterCutoff === 0 ? 20000 : Math.max(20, params.filterCutoff);
+    filter.frequency.setValueAtTime(cutoffFreq, now);
     filter.Q.setValueAtTime(params.filterResonance, now);
     
     masterGain.connect(filter);

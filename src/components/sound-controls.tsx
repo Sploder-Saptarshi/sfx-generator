@@ -1,6 +1,6 @@
 "use client";
 
-import { SoundParams, WaveformType, NoiseType, EnvelopeShape, FilterType } from "@/types/audio";
+import { SoundParams, WaveformType, NoiseType, EnvelopeShape } from "@/types/audio";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
@@ -82,38 +82,26 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
         </div>
       </div>
 
-      {/* Scultping Filter */}
+      {/* Simplified Sculpting Filter */}
       <div className="space-y-6 p-4 glass-panel rounded-2xl border-primary/20 bg-primary/5">
         <div className="flex items-center gap-2 mb-2">
           <Filter className="w-4 h-4 text-primary" />
-          <h3 className="text-sm font-bold uppercase tracking-wider text-primary">Sculptor (Filter)</h3>
+          <h3 className="text-sm font-bold uppercase tracking-wider text-primary">Sculptor</h3>
         </div>
         <div className="space-y-4">
-          <div className="flex gap-1">
-            {(["lowpass", "highpass", "bandpass"] as FilterType[]).map((type) => (
-              <Button
-                key={type}
-                size="sm"
-                variant={params.filterType === type ? "default" : "outline"}
-                className="capitalize flex-1 text-[10px] h-7"
-                onClick={() => updateParam("filterType", type)}
-              >
-                {type === 'lowpass' ? 'Low Pass' : type === 'highpass' ? 'High Pass' : 'Band Pass'}
-              </Button>
-            ))}
-          </div>
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
-              <Label>Cutoff</Label>
-              <span className="text-muted-foreground">{params.filterCutoff.toFixed(0)} Hz</span>
+              <Label>Low Pass Cutoff</Label>
+              <span className="text-muted-foreground">{params.filterCutoff === 0 ? 'OFF' : `${params.filterCutoff.toFixed(0)} Hz`}</span>
             </div>
             <Slider
               value={[params.filterCutoff]}
-              min={20}
+              min={0}
               max={10000}
-              step={1}
+              step={10}
               onValueChange={([val]) => updateParam("filterCutoff", val)}
             />
+            <p className="text-[10px] text-muted-foreground italic">Set to 0 for no filtering.</p>
           </div>
           <div className="space-y-2">
             <div className="flex justify-between text-xs">

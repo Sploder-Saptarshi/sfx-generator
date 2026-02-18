@@ -18,7 +18,7 @@ export interface SoundParams {
   noiseType: NoiseType;
   noiseModulation: number; // Jitters the oscillator frequency
   filterType: FilterType;
-  filterCutoff: number;    // Glues the sound together
+  filterCutoff: number;    // Glues the sound together (0 = off, 1-10000 = Hz)
   filterResonance: number; // Adds that "sculpted" peak
   vibratoDepth: number;
   vibratoRate: number;
@@ -42,8 +42,8 @@ export const defaultSoundParams: SoundParams = {
   noiseType: "white",
   noiseModulation: 0.2,
   filterType: 'lowpass',
-  filterCutoff: 2000,
-  filterResonance: 5,
+  filterCutoff: 0, // Default to 0 (off)
+  filterResonance: 1,
   vibratoDepth: 0,
   vibratoRate: 5,
   reverbAmount: 0.2,
