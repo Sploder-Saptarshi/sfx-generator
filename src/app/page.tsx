@@ -12,30 +12,55 @@ import QuickPresets from "@/components/quick-presets";
 import Composer from "@/components/composer";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Play, Download, Headphones, Share2, Github, LayoutGrid, Music } from "lucide-react";
+import { 
+  Play, 
+  Download, 
+  Headphones, 
+  Share2, 
+  Github, 
+  LayoutGrid, 
+  Music, 
+  Copy, 
+  Check 
+} from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 export default function SoundSculptorApp() {
   const { toast } = useToast();
   const [params, setParams] = useState<SoundParams>(defaultSoundParams);
   const [isInitialized, setIsInitialized] = useState(false);
   const [presets, setPresets] = useState<SoundParams[]>([]);
+  
+  // Share Modal State
+  const [shareUrl, setShareUrl] = useState("");
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     // 1. Handle URL Sharing on Load
-    const search = window.location.search;
-    if (search) {
-      const sharedParams = decodeSoundParams(search);
-      if (Object.keys(sharedParams).length > 0) {
-        setParams({
-          ...defaultSoundParams,
-          ...sharedParams,
-        } as SoundParams);
-        toast({
-          title: "Sound Imported",
-          description: "Shared parameters have been loaded.",
-        });
+    if (typeof window !== "undefined") {
+      const search = window.location.search;
+      if (search) {
+        const sharedParams = decodeSoundParams(search);
+        if (Object.keys(sharedParams).length > 0) {
+          setParams({
+            ...defaultSoundParams,
+            ...sharedParams,
+          } as SoundParams);
+          toast({
+            title: "Sound Imported",
+            description: "Shared parameters have been loaded.",
+          });
+        }
       }
     }
 
@@ -92,18 +117,19 @@ export default function SoundSculptorApp() {
   const handleShare = () => {
     const compressed = encodeSoundParams(params);
     const url = `${window.location.origin}${window.location.pathname}?${compressed}`;
-    
-    navigator.clipboard.writeText(url).then(() => {
+    setShareUrl(url);
+    setIsShareModalOpen(true);
+    setCopied(false);
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setCopied(true);
       toast({
         title: "Link Copied!",
         description: "Your sound settings are ready to share.",
       });
-    }).catch(() => {
-      toast({
-        variant: "destructive",
-        title: "Share Failed",
-        description: "Could not copy to clipboard.",
-      });
+      setTimeout(() => setCopied(false), 2000);
     });
   };
 
@@ -212,6 +238,36 @@ export default function SoundSculptorApp() {
           <Composer library={presets} />
         </TabsContent>
       </Tabs>
+
+      {/* Share Modal */}
+      <Dialog open={isShareModalOpen} onOpenChange={setIsShareModalOpen}>
+        <DialogContent className="sm:max-w-md bg-card border-white/10 rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Share2 className="w-5 h-5 text-primary" />
+              Share Sound Preset
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Anyone with this link can load your synthesis parameters instantly.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center space-x-2 mt-4">
+            <div className="grid flex-1 gap-2">
+              <Input
+                readOnly
+                value={shareUrl}
+                className="bg-white/5 border-white/10 focus-visible:ring-primary rounded-xl"
+              />
+            </div>
+            <Button size="icon" onClick={copyToClipboard} className="bg-primary hover:bg-primary/90 shrink-0 rounded-xl">
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            </Button>
+          </div>
+          <div className="mt-4 flex justify-end">
+             <Button variant="ghost" onClick={() => setIsShareModalOpen(false)} className="rounded-xl">Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {!isInitialized && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
