@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { SoundParams, CompositionState, GAME_PRESETS } from "@/types/audio";
 import { audioEngine } from "@/lib/audio-engine";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import {
   Volume2, 
   Settings2,
   ChevronDown,
-  Hash
+  Download
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -29,6 +29,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface ComposerProps {
   library: SoundParams[];
@@ -36,7 +41,7 @@ interface ComposerProps {
 
 const MUSICAL_KEYS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const SCALES = ["Major", "Minor", "Natural", "Chromatic"];
-const NOTES = ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"];
+const NOTES_POOL = ["C4", "C#4", "D4", "D#4", "E4", "F4", "F#4", "G4", "G#4", "A4", "A#4", "B4", "C5"];
 
 const INITIAL_COMPOSITION: CompositionState = {
   bpm: 128,
@@ -46,13 +51,12 @@ const INITIAL_COMPOSITION: CompositionState = {
     id: `track-${i}`,
     soundId: null,
     steps: Array(8).fill(false),
-    note: NOTES[i % NOTES.length],
+    stepNotes: Array(8).fill("C4"),
     volume: 0.8
   }))
 };
 
 export default function Composer({ library }: ComposerProps) {
-  // Filter the library to ONLY show user presets (exclude game defaults)
   const userLibrary = useMemo(() => {
     const gamePresetNames = GAME_PRESETS.map(p => p.name);
     return library.filter(p => !gamePresetNames.includes(p.name));
@@ -61,6 +65,7 @@ export default function Composer({ library }: ComposerProps) {
   const [comp, setComp] = useState<CompositionState>(INITIAL_COMPOSITION);
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeStep, setActiveStep] = useState<number>(-1);
+  const [editingStep, setEditingStep] = useState<{tIdx: number, sIdx: number} | null>(null);
 
   // Persistence
   useEffect(() => {
@@ -68,14 +73,13 @@ export default function Composer({ library }: ComposerProps) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Ensure legacy compositions are upgraded with key/scale if missing
         setComp({
           ...INITIAL_COMPOSITION,
           ...parsed,
           tracks: parsed.tracks.map((t: any) => ({
             ...INITIAL_COMPOSITION.tracks[0],
             ...t,
-            note: t.note || NOTES[Math.floor(Math.random() * NOTES.length)]
+            stepNotes: t.stepNotes || Array(8).fill(t.note || "C4")
           }))
         });
       } catch (e) {
@@ -95,25 +99,21 @@ export default function Composer({ library }: ComposerProps) {
     saveComp({ ...comp, tracks: newTracks });
   };
 
+  const setStepNote = (trackIndex: number, stepIndex: number, note: string) => {
+    const newTracks = [...comp.tracks];
+    newTracks[trackIndex].stepNotes[stepIndex] = note;
+    saveComp({ ...comp, tracks: newTracks });
+    setEditingStep(null);
+  };
+
   const assignSound = (trackIndex: number, soundId: string | null) => {
     const newTracks = [...comp.tracks];
     newTracks[trackIndex].soundId = soundId;
     saveComp({ ...comp, tracks: newTracks });
   };
 
-  const updateTrackNote = (trackIndex: number, note: string) => {
-    const newTracks = [...comp.tracks];
-    newTracks[trackIndex].note = note;
-    saveComp({ ...comp, tracks: newTracks });
-  };
-
   const updateBpm = (val: number) => {
     saveComp({ ...comp, bpm: val });
-  };
-
-  const clearGrid = () => {
-    saveComp(INITIAL_COMPOSITION);
-    if (isPlaying) stop();
   };
 
   const play = () => {
@@ -133,14 +133,31 @@ export default function Composer({ library }: ComposerProps) {
     audioEngine.stopComposition();
   };
 
+  const exportWav = async () => {
+    const blob = await audioEngine.exportCompositionToWav(comp, library);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `composition-${Date.now()}.wav`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Keyboard listener for note entry
   useEffect(() => {
-    // If BPM changes while playing, restart loop
-    if (isPlaying) {
-        audioEngine.playComposition(comp, library, (step) => {
-            setActiveStep(step);
-        });
-    }
-  }, [comp.bpm, library]);
+    if (!editingStep) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const key = e.key.toUpperCase();
+      if (["A", "B", "C", "D", "E", "F", "G"].includes(key)) {
+        setStepNote(editingStep.tIdx, editingStep.sIdx, `${key}4`);
+      }
+      if (e.key === "Escape") setEditingStep(null);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [editingStep, comp]);
 
   return (
     <div className="flex flex-col gap-6 p-4 glass-panel rounded-3xl border-accent/20 bg-accent/5">
@@ -163,6 +180,16 @@ export default function Composer({ library }: ComposerProps) {
                 PLAY LOOP
               </>
             )}
+          </Button>
+
+          <Button 
+            variant="outline" 
+            size="lg" 
+            onClick={exportWav}
+            className="h-14 rounded-2xl border-white/10 hover:bg-white/10"
+          >
+            <Download className="w-5 h-5 mr-2" />
+            EXPORT .WAV
           </Button>
 
           <div className="flex flex-col gap-1 min-w-[120px]">
@@ -206,7 +233,7 @@ export default function Composer({ library }: ComposerProps) {
         </div>
         
         <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={clearGrid} className="text-muted-foreground hover:text-destructive h-9 rounded-xl">
+            <Button variant="ghost" size="sm" onClick={() => saveComp(INITIAL_COMPOSITION)} className="text-muted-foreground hover:text-destructive h-9 rounded-xl">
                 <Trash2 className="w-4 h-4 mr-2" />
                 Reset Grid
             </Button>
@@ -223,7 +250,7 @@ export default function Composer({ library }: ComposerProps) {
         {comp.tracks.map((track, tIdx) => (
           <div key={track.id} className="flex items-center gap-3 group">
             {/* Track Info / Sound Selector */}
-            <div className="w-56 flex gap-2 shrink-0">
+            <div className="w-48 flex shrink-0">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
@@ -232,7 +259,7 @@ export default function Composer({ library }: ComposerProps) {
                   >
                     <div className="flex items-center gap-2 truncate">
                         <Music className={`w-3.5 h-3.5 ${track.soundId ? 'text-accent' : 'text-muted-foreground'}`} />
-                        <span className="truncate">{track.soundId ? userLibrary.find(s => s.id === track.soundId)?.name : "Assign Sound..."}</span>
+                        <span className="truncate">{track.soundId ? userLibrary.find(s => s.id === track.soundId)?.name : "Assign..."}</span>
                     </div>
                     <ChevronDown className="w-3.5 h-3.5 opacity-50" />
                   </Button>
@@ -252,49 +279,59 @@ export default function Composer({ library }: ComposerProps) {
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
-
-              {/* Note Selector */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-14 h-12 rounded-xl bg-white/5 border-white/10 text-xs font-bold text-primary">
-                    {track.note.replace(/[0-9]/, '')}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="glass-panel grid grid-cols-4 gap-1 p-2">
-                  {NOTES.map(n => (
-                    <DropdownMenuItem 
-                      key={n} 
-                      onClick={() => updateTrackNote(tIdx, n)}
-                      className={`justify-center font-bold text-xs rounded-lg ${track.note === n ? 'bg-primary text-primary-foreground' : ''}`}
-                    >
-                      {n.replace(/[0-9]/, '')}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
 
-            {/* Steps */}
+            {/* Steps with per-cell notes */}
             <div className="flex-1 grid grid-cols-8 gap-2 h-12">
               {track.steps.map((isActive, sIdx) => (
-                <button
-                  key={sIdx}
-                  onClick={() => toggleStep(tIdx, sIdx)}
-                  className={`relative rounded-xl border transition-all duration-200 active:scale-90 ${
-                    isActive 
-                      ? 'bg-accent shadow-lg shadow-accent/40 border-accent' 
-                      : 'bg-white/5 border-white/5 hover:border-white/20'
-                  } ${activeStep === sIdx ? 'ring-2 ring-white/40 ring-offset-2 ring-offset-background' : ''}`}
-                >
-                  {activeStep === sIdx && (
-                    <div className="absolute inset-0 bg-white/20 animate-pulse rounded-xl" />
-                  )}
+                <div key={sIdx} className="relative group/cell">
+                  <button
+                    onClick={() => toggleStep(tIdx, sIdx)}
+                    className={`w-full h-full rounded-xl border transition-all duration-200 active:scale-90 flex flex-col items-center justify-center ${
+                      isActive 
+                        ? 'bg-accent shadow-lg shadow-accent/40 border-accent' 
+                        : 'bg-white/5 border-white/5 hover:border-white/20'
+                    } ${activeStep === sIdx ? 'ring-2 ring-white/40' : ''}`}
+                  >
+                    {activeStep === sIdx && (
+                        <div className="absolute inset-0 bg-white/20 animate-pulse rounded-xl pointer-events-none" />
+                    )}
+                    {isActive && (
+                        <span className="text-[10px] font-bold text-white/80 select-none">
+                            {track.stepNotes[sIdx].replace(/[0-9]/, '')}
+                        </span>
+                    )}
+                  </button>
+
+                  {/* Note Picker Popover */}
                   {isActive && (
-                    <div className="flex items-center justify-center">
-                      <div className="w-2 h-2 bg-white rounded-full shadow-sm" />
-                    </div>
+                    <Popover open={editingStep?.tIdx === tIdx && editingStep?.sIdx === sIdx} onOpenChange={(open) => setEditingStep(open ? {tIdx, sIdx} : null)}>
+                        <PopoverTrigger asChild>
+                            <button className="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full opacity-0 group-hover/cell:opacity-100 flex items-center justify-center shadow-sm transition-opacity">
+                                <span className="text-[8px] font-bold text-accent">✎</span>
+                            </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-48 glass-panel p-2">
+                            <div className="grid grid-cols-4 gap-1">
+                                {NOTES_POOL.map(note => (
+                                    <Button 
+                                        key={note} 
+                                        size="sm" 
+                                        variant={track.stepNotes[sIdx] === note ? "default" : "ghost"}
+                                        className="h-8 text-[10px] font-bold"
+                                        onClick={() => setStepNote(tIdx, sIdx, note)}
+                                    >
+                                        {note.replace(/[0-9]/, '')}
+                                    </Button>
+                                ))}
+                            </div>
+                            <div className="mt-2 text-[8px] text-muted-foreground text-center uppercase tracking-widest font-bold">
+                                Shortcut: Press A-G keys
+                            </div>
+                        </PopoverContent>
+                    </Popover>
                   )}
-                </button>
+                </div>
               ))}
             </div>
           </div>
@@ -304,7 +341,7 @@ export default function Composer({ library }: ComposerProps) {
       <div className="mt-4 p-4 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-between">
           <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
             <Settings2 className="w-3 h-3" />
-            Polyphonic Master Out • 44.1kHz • Melodic Overrides Enabled
+            Polyphonic Master Out • 44.1kHz • Per-Step Note Rendering
           </div>
           <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">

@@ -316,8 +316,9 @@ class AudioEngine {
         if (track.steps[currentStep] && track.soundId) {
           const sound = library.find(s => s.id === track.soundId);
           if (sound) {
-            // Calculate frequency based on the note of the track
-            const freq = NOTE_FREQUENCIES[track.note] || 440;
+            // Get note from the specific step
+            const noteName = track.stepNotes[currentStep];
+            const freq = NOTE_FREQUENCIES[noteName] || 440;
             this.play(sound, 0.1, freq);
           }
         }
@@ -328,6 +329,39 @@ class AudioEngine {
 
     runStep();
     this.compositionLoopInterval = setInterval(runStep, stepDuration * 1000);
+  }
+
+  async exportCompositionToWav(composition: CompositionState, library: SoundParams[]): Promise<Blob> {
+    const sampleRate = 44100;
+    const stepDuration = 60 / composition.bpm / 4;
+    const totalDuration = stepDuration * 8 + 2; // Full loop + 2s decay
+    
+    const offlineCtx = new OfflineAudioContext(1, Math.ceil(sampleRate * totalDuration), sampleRate);
+    const compressor = offlineCtx.createDynamicsCompressor();
+    compressor.connect(offlineCtx.destination);
+
+    composition.tracks.forEach(track => {
+      if (!track.soundId) return;
+      const sound = library.find(s => s.id === track.soundId);
+      if (!sound) return;
+
+      track.steps.forEach((isActive, stepIdx) => {
+        if (isActive) {
+          const time = stepIdx * stepDuration;
+          const noteName = track.stepNotes[stepIdx];
+          const freq = NOTE_FREQUENCIES[noteName] || 440;
+          
+          // Re-implementing simplified play chain for offline context
+          const masterGain = offlineCtx.createGain();
+          masterGain.gain.value = 0.5;
+          masterGain.connect(compressor);
+          this.triggerNote(offlineCtx, time, freq, sound, masterGain);
+        }
+      });
+    });
+
+    const renderedBuffer = await offlineCtx.startRendering();
+    return this.audioBufferToWav(renderedBuffer);
   }
 
   async exportToWav(params: SoundParams): Promise<Blob> {

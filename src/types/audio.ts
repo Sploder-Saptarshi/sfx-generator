@@ -45,7 +45,7 @@ export interface ComposerTrack {
   id: string;
   soundId: string | null;
   steps: boolean[];
-  note: string; // The musical note for this track, e.g., "A4"
+  stepNotes: string[]; // Per-step musical note (e.g. "C4", "D4")
   volume: number;
 }
 
