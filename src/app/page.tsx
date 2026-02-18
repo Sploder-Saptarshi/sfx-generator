@@ -8,7 +8,7 @@ import AudioVisualizer from "@/components/audio-visualizer";
 import AiGenerator from "@/components/ai-generator";
 import QuickPresets from "@/components/quick-presets";
 import { Button } from "@/components/ui/button";
-import { Play, Download, Headphones, Settings2, Share2, Github } from "lucide-react";
+import { Play, Download, Headphones, Share2, Github } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
 
 export default function SoundSculptorApp() {
@@ -73,10 +73,6 @@ export default function SoundSculptorApp() {
           </Button>
           <Button variant="outline" size="icon" className="rounded-full">
             <Github className="w-4 h-4" />
-          </Button>
-          <Button variant="secondary" className="gap-2 rounded-full hidden sm:flex">
-            <Settings2 className="w-4 h-4" />
-            Config
           </Button>
         </div>
       </header>
