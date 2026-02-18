@@ -31,7 +31,29 @@ A next-generation retro game sound effects generator and rhythmic EDM machine po
 ### 🌐 Sharing & Library
 - **URL Sharing**: All synthesis parameters are compressed into a compact URL string for instant sharing.
 - **Library Management**: Import/Export your entire preset library as JSON.
-- **Persistence**: All sounds and loops are saved to browser local storage.
+
+---
+
+## 🛠️ Integration for Game Developers
+
+SoundSculptor is designed to be a "Procedural SFX Pipeline." Instead of shipping large WAV files, you can ship small JSON objects and synthesize sounds on the fly.
+
+### Using the SFX Client
+
+```typescript
+import { sfx } from './lib/sfx-client';
+
+// 1. Load your exported JSON library
+sfx.loadLibrary(mySoundLibraryJson);
+
+// 2. Play a sound by name
+sfx.playSound("Laser_01");
+
+// 3. Simulate distance (lower volume, muffled lowpass)
+sfx.playSound("Explosion_Large", 0.5, 800); 
+```
+
+---
 
 ## 🛠️ Tech Stack
 

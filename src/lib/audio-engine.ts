@@ -210,15 +210,15 @@ class AudioEngine {
     });
   }
 
-  play(params: SoundParams, timeOffset: number = 0, frequencyOverride?: number) {
+  play(params: SoundParams, timeOffset: number = 0, frequencyOverride?: number, volumeMultiplier: number = 1.0) {
     if (!this.ctx || !this.compressor) return;
 
     const now = this.ctx.currentTime + timeOffset;
     const baseFreq = frequencyOverride || params.baseFrequency;
     
     const masterGain = this.ctx.createGain();
-    // Apply user master volume
-    masterGain.gain.setValueAtTime(0.75 * this.masterVolume, now);
+    // Apply user master volume multiplied by local trigger volume
+    masterGain.gain.setValueAtTime(0.75 * this.masterVolume * volumeMultiplier, now);
 
     const lfoVca = this.ctx.createGain();
     lfoVca.gain.setValueAtTime(1.0, now);
@@ -383,7 +383,6 @@ class AudioEngine {
           const freq = NOTE_FREQUENCIES[noteName] || 440;
           
           const masterGain = offlineCtx.createGain();
-          // Apply master volume in export too
           masterGain.gain.value = 0.5 * this.masterVolume;
           masterGain.connect(compressor);
           this.triggerNote(offlineCtx, time, freq, sound, masterGain);
@@ -418,7 +417,6 @@ class AudioEngine {
     compressor.connect(offlineCtx.destination);
 
     const masterGain = offlineCtx.createGain();
-    // Use master volume
     masterGain.gain.setValueAtTime(0.75 * this.masterVolume, now);
     masterGain.connect(compressor);
 
