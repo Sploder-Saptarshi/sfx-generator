@@ -33,7 +33,7 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-1">
-      {/* Oscillators & Vibrato */}
+      {/* Oscillators: Waveforms & Primary Frequencies */}
       <div className="space-y-6 p-4 glass-panel rounded-2xl">
         <div className="flex items-center gap-2 mb-2">
           <Waves className="w-4 h-4 text-primary" />
@@ -56,27 +56,28 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
         <div className="space-y-4 pt-2 border-t border-white/5">
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
-              <Label>Vibrato Depth</Label>
-              <span className="text-muted-foreground">{(params.vibratoDepth * 100).toFixed(0)}%</span>
+              <Label>Base Freq</Label>
+              <span className="text-muted-foreground">{params.baseFrequency.toFixed(0)} Hz</span>
             </div>
             <Slider
-              value={[params.vibratoDepth]}
-              max={1}
-              step={0.01}
-              onValueChange={([val]) => updateParam("vibratoDepth", val)}
+              value={[params.baseFrequency]}
+              min={20}
+              max={2000}
+              step={1}
+              onValueChange={([val]) => updateParam("baseFrequency", val)}
             />
           </div>
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
-              <Label>Vibrato Rate</Label>
-              <span className="text-muted-foreground">{params.vibratoRate.toFixed(1)}Hz</span>
+              <Label>Harmony Offset</Label>
+              <span className="text-muted-foreground">{(params.harmony * 100).toFixed(0)}%</span>
             </div>
             <Slider
-              value={[params.vibratoRate]}
-              min={0.1}
-              max={20}
-              step={0.1}
-              onValueChange={([val]) => updateParam("vibratoRate", val)}
+              value={[params.harmony]}
+              min={0}
+              max={1}
+              step={0.01}
+              onValueChange={([val]) => updateParam("harmony", val)}
             />
           </div>
         </div>
@@ -251,7 +252,7 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
         </div>
       </div>
 
-      {/* Tuning */}
+      {/* Tuning: Vibrato & Quantization */}
       <div className="space-y-6 p-4 glass-panel rounded-2xl">
         <div className="flex items-center gap-2 mb-2">
           <Radio className="w-4 h-4 text-primary" />
@@ -260,31 +261,30 @@ export default function SoundControls({ params, setParams }: SoundControlsProps)
         <div className="space-y-4">
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
-              <Label>Base Freq</Label>
-              <span className="text-muted-foreground">{params.baseFrequency.toFixed(0)} Hz</span>
+              <Label>Vibrato Depth</Label>
+              <span className="text-muted-foreground">{(params.vibratoDepth * 100).toFixed(0)}%</span>
             </div>
             <Slider
-              value={[params.baseFrequency]}
-              min={20}
-              max={2000}
-              step={1}
-              onValueChange={([val]) => updateParam("baseFrequency", val)}
+              value={[params.vibratoDepth]}
+              max={1}
+              step={0.01}
+              onValueChange={([val]) => updateParam("vibratoDepth", val)}
             />
           </div>
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
-              <Label>Harmony Offset</Label>
-              <span className="text-muted-foreground">{(params.harmony * 100).toFixed(0)}%</span>
+              <Label>Vibrato Rate</Label>
+              <span className="text-muted-foreground">{params.vibratoRate.toFixed(1)}Hz</span>
             </div>
             <Slider
-              value={[params.harmony]}
-              min={0}
-              max={1}
-              step={0.01}
-              onValueChange={([val]) => updateParam("harmony", val)}
+              value={[params.vibratoRate]}
+              min={0.1}
+              max={20}
+              step={0.1}
+              onValueChange={([val]) => updateParam("vibratoRate", val)}
             />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 pt-2 border-t border-white/5">
             <div className="flex justify-between text-xs">
               <Label>Quantize (Steps/Octave)</Label>
               <span className="text-muted-foreground">{params.quantize === 0 ? 'Smooth' : params.quantize}</span>
